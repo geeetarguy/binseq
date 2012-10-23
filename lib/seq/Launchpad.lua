@@ -34,6 +34,8 @@ function lib.new()
   self:clear()
   -- set blink mode
   self:blink('auto')
+  -- make sure display/update buffers are in 'commit' mode
+  self:commit()
   return self
 end
 
@@ -102,3 +104,22 @@ function lib:loadView(view)
   self.view = view
   view:display()
 end
+
+-- bit 1 (1 ) : DISPLAY buffer
+-- bit 2 (2 ) : must be 0
+-- bit 3 (4 ) : UPDATE  buffer
+-- bit 4 (8 ) : flash
+-- bit 5 (16) : copy new DISPLAY to new UPDATE buffer
+-- bit 6 (32) : must be 1
+-- bit 7 (64) : must be 0
+-- start double buffering
+function lib:prepare()
+  -- DISPLAY in 1, UPDATE in 0
+  self.out:send(176, 0, 41)
+end
+
+-- commit changes
+function lib:commit()
+  -- DISPLAY in 0, UPDATE in 0
+  self.out:send(176, 0, 40)
+end  

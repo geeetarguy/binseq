@@ -87,6 +87,8 @@ end
 function lib:trigger(e)
   -- 1. Trigger event
   --  TODO
+  if not e.mute then
+  end
   -- Keep last trigger time to reschedule event on edit/create.
   self.t = e.t
   -- 2. Reschedule

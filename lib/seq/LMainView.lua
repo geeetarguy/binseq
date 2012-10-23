@@ -9,12 +9,12 @@
   [ Amber = defined events. Click = load event below  ]
   [ "                                                 ]
   [ "                                                 ]
-  [ "                                                 ]
+  [ velocity (0 = remove event)                       ]
 
-  [ "                                                 ]
-  [ "                                                 ]
-  [ "                                                 ]
-  [ "                                                 ]
+  [ note (midi note value)                            ]
+  [ length                                            ]
+  [ position                                          ]
+  [ loop length (per event)                           ] (use this as global)
 
 --]]------------------------------------------------------
 local lib = {type = 'seq.LMainView'}
@@ -27,10 +27,33 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local ROW_INDEX = {
-  position = 7,
-}
+local PARAMS = {'note', 'velocity', 'loop', 'length', 'position'}
+local ROW_INDEX = {}
+for i, k in ipairs(PARAMS) do
+  ROW_INDEX[k] = i + 3
+end
+
 local BITS = {
+  note     = {
+    4*12, -- 4 octaves
+    2*12, -- 2 octaves
+    12,   -- octave
+    8,    -- 6th minor (Perfect fifth + half tone)
+    4,    -- major third
+    2,    -- tone
+    1,    -- half tone
+    'mute',  -- mute (set as event.mute, not stored in note value)
+  },
+  velocity = {
+    64,
+    32,
+    16,
+    8,
+    4,
+    2,
+    1,
+    '',  -- ignore
+  },
   position = {
     384, -- 4 whole notes   OOOO
     192, -- 2 whole notes   OO
@@ -40,14 +63,17 @@ local BITS = {
     12,  -- eighth note     xx
     6,   -- 16th note       xxx
     2,   -- 1 tuplet, 2 tuplet
-  }
+  },
 }
+
+BITS.loop   = BITS.position
+BITS.length = BITS.position
 
 local BIT_STATE = {
   'Off',
   'Green',
   'Amber',
-  'Red', -- error
+  'Red', -- mute
 }
 
 --=============================================== PUBLIC
@@ -117,17 +143,23 @@ function lib:editEvent(e, row, col)
   end
   self.event = e
   self.btn = self.pad:button(row, col)
-  self.btn:setState('Green')
-  -- Load event state in rows 4 to 8
-  -- position is at row ROW_INDEX.position
-  private.loadParam(self, 'position', e)
+  self.pad:prepare()
+    self.btn:setState('Green')
+    -- Load event state in rows 4 to 8
+    -- position is at row ROW_INDEX.position
+    private.loadParam(self, 'position', e)
+    for _, key in ipairs(PARAMS) do
+      private.loadParam(self, key, e)
+    end
+  self.pad:commit()
 end
 
-function lib:setPosition(row, col)
-  local key = 'position'
-  private.setParam(self, 'position', row, col)
+for _, key in ipairs(PARAMS) do
+  -- On button press for row ROW_INDEX[key], call setParam
+  press[ROW_INDEX[key]] = function(self, row, col)
+    private.setParam(self, key, row, col)
+  end
 end
-press[ROW_INDEX.position] = lib.setPosition
 
 function private:setParam(key, row, col)
   local e = self.event
@@ -135,23 +167,37 @@ function private:setParam(key, row, col)
     -- Red ?
     return
   end
-  local p = e.position
+  local p = e[key]
   local r = BITS[key][col]
   local bits = self.bits[key]
   local b = bits[col]
-  p = p - b * r
-  if col == 8 then
-    -- tuplet bit
-    b = (b + 1) % 3
-  elseif b == 0 then
-    b = 1
+  if type(r) == 'string' then
+    -- special operation
+    if r == 'mute' then
+      b = e.mute and 0 or 3
+      bits[col] = b
+      self.event = self.seq:setEvent(e.id, {
+        mute = b == 3
+      })
+    else
+      -- ignore
+      return
+    end
   else
-    b = 0
+    p = p - b * r
+    if col == 8 then
+      -- tuplet bit
+      b = (b + 1) % 3
+    elseif b == 0 then
+      b = 1
+    else
+      b = 0
+    end
+    bits[col] = b
+    self.event = self.seq:setEvent(e.id, {
+      [key] = p + b * r,
+    })
   end
-  bits[col] = b
-  self.event = self.seq:setEvent(e.id, {
-    position = p + b * r,
-  })
   self.btns[key][col]:setState(BIT_STATE[b+1])
 end
 
@@ -173,8 +219,21 @@ function private:loadParam(key, e)
   local bit_values = BITS[key]
   for i=1,8 do
     local r = bit_values[i]
-    local b = math.floor(position / r)
-    position = position - b * r
+    local b
+    if type(r) == 'string' then
+      if r == 'mute' then
+        b = e.mute and 3 or 0
+      else
+        -- ignore
+        b = 0
+      end
+    else
+      b = math.floor(position / r)
+      if key == 'note' and b > 1 then
+        b = 1
+      end
+      position = position - b * r
+    end
     bits[i] = b
     btns[i]:setState(BIT_STATE[b+1])
   end

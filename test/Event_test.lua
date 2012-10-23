@@ -18,8 +18,9 @@ function should.setDefaultsOnCreate()
   assertValueEqual({
     loop = 96,
     position = 0,
-    velocity = 90,
+    velocity = 96,
     note     = 0,
+    length   = 24,
   }, e)
 end
 

@@ -32,7 +32,8 @@ function lib.new(def)
     position = 0,
     loop     = 96,
     note     = 0,
-    velocity = 90,
+    length   = 24,
+    velocity = 96,
   }
   setmetatable(self, lib)
   if def then
