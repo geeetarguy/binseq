@@ -27,11 +27,48 @@ setmetatable(lib, {
 })
 
 -- seq.Event(...)
-function lib.new()
+function lib.new(def)
   local self = {
+    loop = 96,
   }
-  return setmetatable(self, lib)
+  setmetatable(self, lib)
+  if def then
+    self:set(def)
+  end
+  return self
 end
 
+function lib:set(def)
+  for key, value in pairs(def) do
+    self[key] = value
+  end
+end
+
+-- 0      Gs             Ep       Ep (ignored)
+-- |-------|-------------x--|-----x
+-- |-------|---- m ---------|
+-- |-------|- tl -|- te -|        normal trigger
+-- |-------|--- p -------|
+--
+-- |-------|---- tl -------|------------------ te --|      wrap around on next loop
+-- |-------|--- p -------|
+-- t = time in midi clock since start of song.
+function lib:nextTrigger(t, Gs, Gm, not_now)
+  local m = Gm or self.loop
+  local p = self.position - Gs
+  if p < 0 or p >= m then
+    -- Out of current loop region: ignore
+    return nil
+  end
+  
+  local tl = t % m
+  local te = p - tl
+  if te < 0 or (not_now and te == 0) then
+    -- Wrap around loop
+    te = te + m
+  end
+  -- Return absolute next trigger
+  return t + te
+end
 
 

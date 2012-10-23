@@ -22,7 +22,13 @@ setmetatable(lib, {
 -- seq.Partition(...)
 function lib.new()
   local self = {
-    events = {},
+    -- No global loop by default
+    global_loop  = nil,
+    -- Global offset is 0 by default
+    global_start = 0,
+    events = {
+      count = 0,
+    },
   }
   return setmetatable(self, lib)
 end
