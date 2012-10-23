@@ -27,16 +27,20 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local POSITION_ROW = 7
-local POSITION_BITS = {
-  384, -- 4 whole notes   OOOO
-  192, -- 2 whole notes   OO
-  96,  -- 1 whole note    O
-  48,  -- half note       .
-  24,  -- quarter note    x
-  12,  -- eighth note     xx
-  6,   -- 16th note       xxx
-  2,   -- 1 tuplet, 2 tuplet
+local ROW_INDEX = {
+  position = 7,
+}
+local BITS = {
+  position = {
+    384, -- 4 whole notes   OOOO
+    192, -- 2 whole notes   OO
+    96,  -- 1 whole note    O
+    48,  -- half note       .
+    24,  -- quarter note    x
+    12,  -- eighth note     xx
+    6,   -- 16th note       xxx
+    2,   -- 1 tuplet, 2 tuplet
+  }
 }
 
 local BIT_STATE = {
@@ -59,6 +63,10 @@ function lib.new(lseq)
     lseq = lseq,
     pad = lseq.pad,
     seq = lseq.seq,
+    -- direct access to buttons (ex: btns.position[col])
+    btns = {},
+    -- direct access to bit values (ex: bits.position[col])
+    bits = {},
   }
   return setmetatable(self, lib)
 end
@@ -89,7 +97,6 @@ function lib:selectNote(row, col)
   local id = (row-1)*16 + col
   local e = self.seq:getEvent(id)
   if not e then
-    print("Loading new event", id)
     e = seq.Event()
     e.id = id
     e.is_new = true
@@ -112,18 +119,25 @@ function lib:editEvent(e, row, col)
   self.btn = self.pad:button(row, col)
   self.btn:setState('Green')
   -- Load event state in rows 4 to 8
-  private.loadPosition(self, e)
+  -- position is at row ROW_INDEX.position
+  private.loadParam(self, 'position', e)
 end
 
 function lib:setPosition(row, col)
+  local key = 'position'
+  private.setParam(self, 'position', row, col)
+end
+press[ROW_INDEX.position] = lib.setPosition
+
+function private:setParam(key, row, col)
   local e = self.event
   if not e then
     -- Red ?
     return
   end
   local p = e.position
-  local r = POSITION_BITS[col]
-  local bits = self.position_bits
+  local r = BITS[key][col]
+  local bits = self.bits[key]
   local b = bits[col]
   p = p - b * r
   if col == 8 then
@@ -135,31 +149,30 @@ function lib:setPosition(row, col)
     b = 0
   end
   bits[col] = b
-  print('setPosition')
   self.event = self.seq:setEvent(e.id, {
     position = p + b * r,
   })
-  self.position_buttons[col]:setState(BIT_STATE[b+1])
+  self.btns[key][col]:setState(BIT_STATE[b+1])
 end
-press[POSITION_ROW] = lib.setPosition
 
--- position is at row POSITION_ROW
-function private:loadPosition(e)
-  local position = e and e.position or 0
-  local btns = self.position_buttons
+function private:loadParam(key, e)
+  local position = e and e[key] or 0
+  local btns = self.btns[key]
   local pad = self.pad
   local bits = {}
-  self.position_bits = bits
+  self.bits[key] = bits
   if not btns then
+    local row = ROW_INDEX[key]
     btns = {}
-    self.position_buttons = btns
+    self.btns[key] = btns
     for i=1,8 do
-      btns[i] = pad:button(POSITION_ROW, i)
+      btns[i] = pad:button(row, i)
     end
   end
   
+  local bit_values = BITS[key]
   for i=1,8 do
-    local r = POSITION_BITS[i]
+    local r = bit_values[i]
     local b = math.floor(position / r)
     position = position - b * r
     bits[i] = b
