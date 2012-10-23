@@ -6,11 +6,11 @@
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LaunchpadButton')
+local should = test.Suite('seq.LButton')
 local withUser = should:testWithUser()
 
 function should.autoLoad()
-  local l = seq.LaunchpadButton
+  local l = seq.LButton
   assertType('table', l)
 end
 

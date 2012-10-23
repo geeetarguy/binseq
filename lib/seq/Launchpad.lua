@@ -57,7 +57,7 @@ function lib:button(row, col)
   local btn_id = row * 16 + col
   local b = self.buttons[btn_id]
   if not b then
-    b = seq.LaunchpadButton(self, row, col)
+    b = seq.LButton(self, row, col)
     self.buttons[btn_id] = b
   end
   return b
@@ -74,18 +74,31 @@ function lib:receiveMidi(a, b, c)
     -- grid button event
     btn_id = b + 17
   end
+  local row = math.floor(btn_id / 16)
+  local col = btn_id - row * 16
 
-  local btn = self.buttons[btn_id]
-  local f = btn and btn[key]
-  if f then
-    f(btn)
+  local view = self.view
+  if view then
+    -- View acts as delegate for events.
+    view[key](view, row, col)
   else
-    -- Default action
-    f = self[key]
+    local btn = self.buttons[btn_id]
+    local f = btn and btn[key]
     if f then
-      local row = math.floor(btn_id / 16)
-      local col = btn_id - row * 16
-      f(self, row, col)
+      f(btn)
+    else
+      -- Default action
+      f = self[key]
+      if f then
+        f(self, row, col)
+      end
     end
   end
+end
+
+-- A view acts as a delegate for all received midi operations. It should
+-- respond to 'display()', 'press(row, col)' and 'release(row, col)'.
+function lib:loadView(view)
+  self.view = view
+  view:display()
 end

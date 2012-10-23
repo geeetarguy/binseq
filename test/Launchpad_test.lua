@@ -17,13 +17,13 @@ end
 function should.returnButton()
   local l = seq.Launchpad()
   local b = l:button(1,1)
-  assertEqual('seq.LaunchpadButton', b.type)
+  assertEqual('seq.LButton', b.type)
 end
 
 function withUser.should.communicateWithLaunchpad(t)
   local l = seq.Launchpad()
   local btn = l:button(1,1)
-  btn:setState 'Green'
+  btn:setState 'BlinkGreen'
   function btn:press()
     self:setState('Amber')
   end

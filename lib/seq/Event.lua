@@ -29,7 +29,10 @@ setmetatable(lib, {
 -- seq.Event(...)
 function lib.new(def)
   local self = {
-    loop = 96,
+    position = 0,
+    loop     = 96,
+    note     = 0,
+    velocity = 90,
   }
   setmetatable(self, lib)
   if def then
