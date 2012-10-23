@@ -66,7 +66,8 @@ local BITS = {
   },
 }
 
-BITS.loop   = BITS.position
+BITS.loop   = yaml.load(yaml.dump(BITS.position)) -- copy
+BITS.loop[9] = 'global'
 BITS.length = BITS.position
 
 local BIT_STATE = {
@@ -74,6 +75,12 @@ local BIT_STATE = {
   'Green',
   'Amber',
   'Red', -- mute
+}
+
+local GLOBAL_LOOP_BIT_STATE = {
+  'Off',
+  'Amber',
+  'LightGreen',
 }
 
 --=============================================== PUBLIC
@@ -149,25 +156,44 @@ function lib:editEvent(e, row, col)
     -- position is at row ROW_INDEX.position
     private.loadParam(self, 'position', e)
     for _, key in ipairs(PARAMS) do
-      private.loadParam(self, key, e)
+      if key == 'loop' then
+        local seq = self.seq
+        if seq.global_loop then
+          -- Dispaly global loop setting instead
+          private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
+        else
+          private.loadParam(self, key, e)
+        end
+      else
+        private.loadParam(self, key, e)
+      end
     end
   self.pad:commit()
 end
 
 for _, key in ipairs(PARAMS) do
-  -- On button press for row ROW_INDEX[key], call setParam
   press[ROW_INDEX[key]] = function(self, row, col)
     private.setParam(self, key, row, col)
   end
 end
 
 function private:setParam(key, row, col)
+  local states = BIT_STATE
+  local seq = self.seq
+  if key == 'loop' and seq.global_loop then
+    states = GLOBAL_LOOP_BIT_STATE
+  end
   local e = self.event
   if not e then
     -- Red ?
     return
   end
-  local p = e[key]
+  local p
+  if key == 'loop' and seq.global_loop then
+    p = seq.global_loop
+  else
+    p = e[key]
+  end
   local r = BITS[key][col]
   local bits = self.bits[key]
   local b = bits[col]
@@ -176,14 +202,28 @@ function private:setParam(key, row, col)
     if r == 'mute' then
       b = e.mute and 0 or 3
       bits[col] = b
-      self.event = self.seq:setEvent(e.id, {
+      self.event = seq:setEvent(e.id, {
         mute = b == 3
       })
+    elseif r == 'global' and key == 'loop' then
+      -- set current value for 'key' as global parameter
+      if seq.global_loop then
+        -- turn off
+        seq.global_loop_value = seq.global_loop
+        seq:setGlobalLoop(nil)
+        private.loadParam(self, key, e)
+        b = 0
+      else
+        -- turn on
+        seq:setGlobalLoop(seq.global_loop_value or 96)
+        private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
+        b = 2
+      end
     else
       -- ignore
       return
     end
-  else
+  elseif r then
     p = p - b * r
     if col == 8 then
       -- tuplet bit
@@ -194,15 +234,23 @@ function private:setParam(key, row, col)
       b = 0
     end
     bits[col] = b
-    self.event = self.seq:setEvent(e.id, {
-      [key] = p + b * r,
-    })
+    if key == 'loop' and seq.global_loop then
+      -- update global loop
+      seq:setGlobalLoop(p + b * r)
+    else
+      self.event = seq:setEvent(e.id, {
+        [key] = p + b * r,
+      })
+    end
+  else
+    b = 0
   end
-  self.btns[key][col]:setState(BIT_STATE[b+1])
+  self.btns[key][col]:setState(states[b+1])
 end
 
-function private:loadParam(key, e)
-  local position = e and e[key] or 0
+function private:loadParam(key, e, value, states)
+  local states = states or BIT_STATE
+  local value = value or (e and e[key]) or 0
   local btns = self.btns[key]
   local pad = self.pad
   local bits = {}
@@ -211,30 +259,34 @@ function private:loadParam(key, e)
     local row = ROW_INDEX[key]
     btns = {}
     self.btns[key] = btns
-    for i=1,8 do
+    for i=1,9 do
       btns[i] = pad:button(row, i)
     end
   end
   
   local bit_values = BITS[key]
-  for i=1,8 do
+  for i=1,9 do
     local r = bit_values[i]
     local b
     if type(r) == 'string' then
       if r == 'mute' then
         b = e.mute and 3 or 0
+      elseif r == 'global' and key == 'loop' then
+        b = self.seq.global_loop_e == e and 1 or 0
       else
         -- ignore
         b = 0
       end
-    else
-      b = math.floor(position / r)
+    elseif r then
+      b = math.floor(value / r)
       if key == 'note' and b > 1 then
         b = 1
       end
-      position = position - b * r
+      value = value - b * r
+    else
+      b = 0
     end
     bits[i] = b
-    btns[i]:setState(BIT_STATE[b+1])
+    btns[i]:setState(states[b+1])
   end
 end
