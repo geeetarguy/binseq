@@ -27,7 +27,7 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local PARAMS = {'note', 'velocity', 'loop', 'length', 'position'}
+local PARAMS = {'note', 'velocity', 'length', 'position', 'loop'}
 local ROW_INDEX = {}
 for i, k in ipairs(PARAMS) do
   ROW_INDEX[k] = i + 3
@@ -35,6 +35,7 @@ end
 
 local BITS = {
   note     = {
+    'mute',  -- mute (set as event.mute, not stored in note value)
     4*12, -- 4 octaves
     2*12, -- 2 octaves
     12,   -- octave
@@ -42,9 +43,9 @@ local BITS = {
     4,    -- major third
     2,    -- tone
     1,    -- half tone
-    'mute',  -- mute (set as event.mute, not stored in note value)
   },
   velocity = {
+    '',  -- ignore
     64,
     32,
     16,
@@ -52,29 +53,45 @@ local BITS = {
     4,
     2,
     1,
-    '',  -- ignore
   },
-  position = {
-    384, -- 4 whole notes   OOOO
+  length = {
     192, -- 2 whole notes   OO
     96,  -- 1 whole note    O
-    48,  -- half note       .
-    24,  -- quarter note    x
-    12,  -- eighth note     xx
-    6,   -- 16th note       xxx
-    2,   -- 1 tuplet, 2 tuplet
+    48,  -- half note       o
+    24,  -- quarter note    .
+    12,  -- eighth note     x
+    6,   -- 16th note       xx
+    3,   -- 32th note       xxx
+    1,   -- 1 tuplet, 2 tuplet
+  },
+  position = {
+    192, -- 2 whole notes   OO
+    96,  -- 1 whole note    O
+    48,  -- half note       o
+    24,  -- quarter note    .
+    12,  -- eighth note     x
+    6,   -- 16th note       xx
+    3,   -- 32th note       xxx
+    1,   -- 1 tuplet, 2 tuplet
+  },
+  loop = {
+    192, -- 2 whole notes   OO
+    96,  -- 1 whole note    O
+    48,  -- half note       o
+    24,  -- quarter note    .
+    12,  -- eighth note     x
+    6,   -- 16th note       xx
+    3,   -- 32th note       xxx
+    1,   -- 1 tuplet, 2 tuplet
+    'global',
   },
 }
-
-BITS.loop   = yaml.load(yaml.dump(BITS.position)) -- copy
-BITS.loop[9] = 'global'
-BITS.length = BITS.position
 
 local BIT_STATE = {
   'Off',
   'Green',
   'Amber',
-  'Red', -- mute
+  'LightRed', -- mute
 }
 
 local GLOBAL_LOOP_BIT_STATE = {
@@ -225,7 +242,7 @@ function private:setParam(key, row, col)
     end
   elseif r then
     p = p - b * r
-    if col == 8 then
+    if col == 8 and (key == 'loop' or key == 'length' or key == 'position') then
       -- tuplet bit
       b = (b + 1) % 3
     elseif b == 0 then
@@ -272,7 +289,7 @@ function private:loadParam(key, e, value, states)
       if r == 'mute' then
         b = e.mute and 3 or 0
       elseif r == 'global' and key == 'loop' then
-        b = self.seq.global_loop_e == e and 1 or 0
+        b = self.seq.global_loop and 1 or 0
       else
         -- ignore
         b = 0

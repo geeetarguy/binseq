@@ -70,7 +70,7 @@ function should.buildActiveList()
   local s = seq.Sequencer()
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
-    -- default loop = 96
+    loop = 96,
   })
 
   s:setEvent(2, {
@@ -96,6 +96,7 @@ function should.buildActiveList()
   assertEqual(96, list.next.next.next.t)
   assertEqual(1, list.next.next.next.id)
 
+  seq_debug = true
   t = 25
   local list = s:buildActiveList(t)
 
@@ -122,7 +123,7 @@ function should.rescheduleEventOnTrigger()
   local s = seq.Sequencer()
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
-    -- default loop = 96
+    loop = 96,
   })
 
   s:setEvent(2, {
@@ -196,7 +197,7 @@ function should.rescheduleEventOnEditWithT()
   s.t = 20
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
-    -- default loop = 96
+    loop = 96,
   })
 
   s:setEvent(2, {

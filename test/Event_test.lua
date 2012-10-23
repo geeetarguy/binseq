@@ -16,11 +16,11 @@ end
 function should.setDefaultsOnCreate()
   local e = seq.Event()
   assertValueEqual({
-    loop = 96,
+    loop     = 24,
     position = 0,
-    velocity = 96,
+    velocity = 48,
     note     = 0,
-    length   = 24,
+    length   = 6,
   }, e)
 end
 
@@ -77,6 +77,15 @@ function should.computeTriggerTimeWithGlobalLoop()
   assertEqual(48+28, e:nextTrigger(t, Gs, Gm))
   t = 48+29
   assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
+end
+
+function should.setEvent()
+  local e = seq.Event {
+    position = 48
+  }
+  assertTrue(e:set({position = 24}))
+  assertTrue(e:set({loop = 24}))
+  assertFalse(e:set({note = 24}))
 end
 
 test.all()

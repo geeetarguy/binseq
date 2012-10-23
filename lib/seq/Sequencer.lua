@@ -24,6 +24,7 @@ function lib.new()
     partitions = {seq.Partition()},
     t = 0,
     list = {},
+    global_loop_value = 24,
   }
   setmetatable(self, lib)
   self:selectPartition(1)
@@ -47,13 +48,16 @@ end
 
 function lib:setEvent(id, def)
   local e = self:getEvent(id)
+  local new_event = true
   if not e then
+    new_event = true
     e = seq.Event()
     e.id = id
     self.partition.events[id] = e
   end
-  e:set(def)
-  private.schedule(self, e)
+  if e:set(def) or new_event then
+    private.schedule(self, e)
+  end
   return e
 end
 
@@ -72,13 +76,25 @@ end
 -- Return a sorted linked list of active events given the current global
 -- start and global loop settings.
 function lib:buildActiveList(tc)
-  local list = {}
-  self.list = list
+  local list = self.list
+  -- Clear list (we do not replace list because it can be stored in upvalues)
+  local n = list.next
+  if n then
+    n.prev = nil
+  end
+  list.next = nil
+
   local Gs = self.global_start
   local Gm = self.global_loop
   for _, e in ipairs(self.partition.events) do
     local t = e:nextTrigger(tc, Gs, Gm)
-    private.insertInList(list, e, t)
+    private.insertInList(self, list, e, t)
+    if seq_debug then
+      local l = list.next
+      while l do
+        l = l.next
+      end
+    end
   end
 
   return list
@@ -88,6 +104,10 @@ function lib:trigger(e)
   -- 1. Trigger event
   --  TODO
   if not e.mute then
+    local f = self.playback
+    if f then
+      f(self, e)
+    end
   end
   -- Keep last trigger time to reschedule event on edit/create.
   self.t = e.t
@@ -95,12 +115,60 @@ function lib:trigger(e)
   private.schedule(self, e, true)
 end
 
-function private:schedule(e, not_now)
-  local t = e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
-  private.insertInList(self.list, e, t)
+-- Start playback
+function lib:play(bpm)
+  if self.thread then
+    -- do nothing
+  else
+    -- Start playback thread
+    -- Current time = now
+    -- Convert bpm in ms/tick
+    -- one beat = 24 ticks
+    -- = one minute / (bpm * 24) = 60000 / (bpm * 24)
+    self.ms_per_tick = 60000 / bpm / 24
+    -- song position
+    self.t = 0
+    -- sequencer start in ms
+    self.start_ms = now()
+    self.playing = true
+    self:buildActiveList()
+    private.startThread(self)
+  end
 end
 
-function private.insertInList(list, e, t)
+function private:startThread()
+  local list = self.list
+  if list.next then
+    self.thread = lk.Thread(function(thread)
+      while self.playing do
+        local e = list.next
+        if e then
+          -- event play time in ms relative to 'now'
+          local dt = self.start_ms - now() + e.t * self.ms_per_tick
+          if dt > 0 then
+            sleep(dt)
+          else
+            self:trigger(e)
+          end
+        else
+          -- no event to play. stop.
+          self.thread = nil
+          return
+        end
+      end
+    end)
+  else
+    -- no event to play in current loop
+    self.thread = nil
+  end
+end
+
+function private:schedule(e, not_now)
+  local t = e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
+  private.insertInList(self, self.list, e, t)
+end
+
+function private.insertInList(self, list, e, t)
   -- Remove from previous list
   local p = e.prev
   local n = e.next
@@ -130,15 +198,21 @@ function private.insertInList(list, e, t)
         end
         break
       end
+
+      -- Any next item ?
       local n = l.next
       if not n then
-        -- add at end
+        -- end of list reached
         l.next = e
         e.prev = l
         break
       else
         l = n
       end
+    end
+
+    if self.playing and not self.thread then
+      private.startThread(self)
     end
   end
 end

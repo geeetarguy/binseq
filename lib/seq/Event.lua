@@ -30,10 +30,10 @@ setmetatable(lib, {
 function lib.new(def)
   local self = {
     position = 0,
-    loop     = 96,
+    loop     = 24,
     note     = 0,
-    length   = 24,
-    velocity = 96,
+    length   = 6,
+    velocity = 48,
   }
   setmetatable(self, lib)
   if def then
@@ -42,10 +42,16 @@ function lib.new(def)
   return self
 end
 
+-- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
+  local need_schedule = false
   for key, value in pairs(def) do
+    if not need_schedule and key == 'position' or key == 'loop' then
+      need_schedule = true
+    end
     self[key] = value
   end
+  return need_schedule
 end
 
 -- 0      Gs             Ep       Ep (ignored)
