@@ -25,6 +25,14 @@ function lib.new(sequencer)
     seq = sequencer,
     views = {},
   }
+  local trigger = self.seq.trigger
+  function sequencer.trigger(sequencer, e)
+    trigger(sequencer, e)
+    local view = self.view
+    if view then
+      view:setEventState(e)
+    end
+  end
   return setmetatable(self, lib)
 end
 
@@ -39,6 +47,7 @@ function lib:loadView(name)
       error('Could not find seq.L'..name..'View view')
     end
   end
+  self.view = view
   self.pad:loadView(view)
 end
 

@@ -48,7 +48,7 @@ end
 
 function lib:setEvent(id, def)
   local e = self:getEvent(id)
-  local new_event = true
+  local new_event = false
   if not e then
     new_event = true
     e = seq.Event()
@@ -65,12 +65,14 @@ end
 function lib:setGlobalLoop(m)
   self.partition.global_loop = m
   self.global_loop = m
+  self:buildActiveList(self.t)
 end
 
 -- The global start offset.
 function lib:setGlobalStart(s)
   self.partition.global_start = s
   self.global_start = s
+  self:buildActiveList(self.t)
 end
 
 -- Return a sorted linked list of active events given the current global
@@ -87,8 +89,9 @@ function lib:buildActiveList(tc)
   local Gs = self.global_start
   local Gm = self.global_loop
   for _, e in ipairs(self.partition.events) do
-    local t = e:nextTrigger(tc, Gs, Gm)
-    private.insertInList(self, list, e, t)
+    -- This sets e.t
+    e:nextTrigger(tc, Gs, Gm)
+    private.insertInList(self, list, e)
     if seq_debug then
       local l = list.next
       while l do
@@ -102,8 +105,7 @@ end
 
 function lib:trigger(e)
   -- 1. Trigger event
-  --  TODO
-  if not e.mute then
+  if not e.mute or e.off_t then
     local f = self.playback
     if f then
       f(self, e)
@@ -164,14 +166,16 @@ function private:startThread()
 end
 
 function private:schedule(e, not_now)
-  local t = e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
-  private.insertInList(self, self.list, e, t)
+  e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
+  private.insertInList(self, self.list, e)
 end
 
-function private.insertInList(self, list, e, t)
+function private.insertInList(self, list, e)
   -- Remove from previous list
   local p = e.prev
   local n = e.next
+  local t = e.t
+
   if p then
     p.next = n
     e.prev = nil
@@ -180,8 +184,6 @@ function private.insertInList(self, list, e, t)
     n.prev = p
     e.next = nil
   end
-
-  e.t = t
 
   if t then
     -- insert sorted

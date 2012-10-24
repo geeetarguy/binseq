@@ -16,6 +16,7 @@ end
 function should.setDefaultsOnCreate()
   local e = seq.Event()
   assertValueEqual({
+    mute     = true,
     loop     = 24,
     position = 0,
     velocity = 48,
@@ -86,6 +87,188 @@ function should.setEvent()
   assertTrue(e:set({position = 24}))
   assertTrue(e:set({loop = 24}))
   assertFalse(e:set({note = 24}))
+end
+
+function should.playOnOff()
+  local e = seq.Event()
+  local l = 'NoteOn'
+  for i=1,100 do
+    local r = math.random(3)
+    if r == 1 then
+      e:set({length = math.random(48)})
+    elseif r == 2 then
+      e:set({loop = math.random(48)})
+    else
+      e:set({position = math.random(48)})
+    end
+    e:nextTrigger(e.t or 0, 0, nil)
+    local a
+    if e.t or l == 'NoteOff' then
+      a = e:trigger()
+      if l == 'NoteOn' then
+        assertEqual(0x90, a)
+        l = 'NoteOff'
+      else
+        assertEqual(0x80, a)
+        l = 'NoteOn'
+      end
+    end
+  end
+end
+
+function should.allowLengthSameAsLoop()
+  local e = seq.Event {
+    loop = 24,
+    length = 24,
+    position = 0,
+    note = 60,
+  }
+
+  -- NoteOn @ 0
+  e:nextTrigger(0, 0)
+
+  assertEqual(0, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(24, e.off_t)
+
+  -- NoteOff @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(24, e.t)
+  assertEqual(24, e.off_t)
+  e:trigger()
+  assertEqual(nil, e.off_t)
+
+  -- NoteOn @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(24, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(48, e.off_t)
+end
+
+function should.allowLengthDifferentAsLoop()
+  local e = seq.Event {
+    loop = 24,
+    length = 20,
+    position = 0,
+    note = 60,
+  }
+
+  -- NoteOn @ 0
+  e:nextTrigger(0, 0)
+
+  assertEqual(0, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(20, e.off_t)
+
+  -- NoteOff @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(20, e.t)
+  assertEqual(20, e.off_t)
+  e:trigger()
+  assertEqual(nil, e.off_t)
+
+  -- NoteOn @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(24, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(44, e.off_t)
+
+  -- change length during NoteOn
+  e:set({length = 24})
+
+  -- NoteOff @ 48
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(48, e.t)
+  assertEqual(48, e.off_t)
+  e:trigger()
+  assertEqual(nil, e.off_t)
+
+  -- NoteOn @ 48
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(48, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(72, e.off_t)
+
+  -- NoteOff @ 72
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(72, e.t)
+  assertEqual(72, e.off_t)
+  e:trigger()
+  assertEqual(nil, e.off_t)
+
+  -- NoteOn @ 72, Off 96, On 96, Off 120, On 120, etc.
+  for _, value in ipairs {72, 96, 96, 120, 120} do
+    e:nextTrigger(e.t, 0, nil, true)
+    assertEqual(value, e.t)
+    e:trigger()
+  end
+end
+
+function should.allowLengthLongerThenLoop()
+  local e = seq.Event {
+    loop = 24,
+    length = 96,
+    position = 0,
+    note = 60,
+  }
+
+  -- NoteOn @ 0
+  e:nextTrigger(0, 0)
+
+  assertEqual(0, e.t)
+  assertEqual(nil, e.off_t)
+  e:trigger()
+  assertEqual(96, e.off_t)
+
+  -- NoteOff @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(24, e.t)
+  -- Actual value for off_t does not matter during NoteOff
+  assertEqual(96, e.off_t)
+  e:trigger()
+  assertEqual(nil, e.off_t)
+end
+
+function should.allowNoteChangeInNoteOn()
+  local e = seq.Event {
+    loop = 24,
+    length = 96,
+    position = 0,
+    note = 60,
+  }
+
+  -- NoteOn @ 0
+  e:nextTrigger(0, 0)
+
+  assertEqual(0, e.t)
+  assertEqual(nil, e.off_t)
+  local _, note = e:trigger()
+  assertEqual(60, note)
+  assertEqual(96, e.off_t)
+
+  e:set {note = 72}
+
+  -- NoteOff @ 24
+  e:nextTrigger(e.t, 0, nil, true)
+  assertEqual(24, e.t)
+  -- Actual value for off_t does not matter during NoteOff
+  assertEqual(96, e.off_t)
+  local a, note = e:trigger()
+  assertEqual(60, note)
+  assertEqual(0x80, a)
+
+  assertEqual(nil, e.off_t)
+
+  -- New note
+  e:nextTrigger(e.t, 0, nil, true)
+  local a, note = e:trigger()
+  assertEqual(72, note)
+  assertEqual(0x90, a)
 end
 
 test.all()

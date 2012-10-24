@@ -6,7 +6,7 @@
   This view shows the following elements:
 
   ( usual global commands )
-  [ Amber = defined events. Click = load event below  ]
+  [ LightAmber = defined events. Click = load event below  ]
   [ "                                                 ]
   [ "                                                 ]
   [ velocity (0 = remove event)                       ]
@@ -55,34 +55,37 @@ local BITS = {
     1,
   },
   length = {
-    192, -- 2 whole notes   OO
-    96,  -- 1 whole note    O
+    -- Adding 1000 = triple mode: 0, 1, 2
+    1288, -- 3 whole notes   OOO, OOO OOO
+    1096,  -- 1 whole note    O, OO
     48,  -- half note       o
     24,  -- quarter note    .
     12,  -- eighth note     x
     6,   -- 16th note       xx
     3,   -- 32th note       xxx
-    1,   -- 1 tuplet, 2 tuplet
+    1001,   -- 1 tuplet, 2 tuplet
   },
   position = {
-    192, -- 2 whole notes   OO
-    96,  -- 1 whole note    O
+    -- Adding 1000 = triple mode: 0, 1, 2
+    1288, -- 3 whole notes   OOO, OOO OOO
+    1096,  -- 1 whole note    O, OO
     48,  -- half note       o
     24,  -- quarter note    .
     12,  -- eighth note     x
     6,   -- 16th note       xx
     3,   -- 32th note       xxx
-    1,   -- 1 tuplet, 2 tuplet
+    1001,   -- 1 tuplet, 2 tuplet
   },
   loop = {
-    192, -- 2 whole notes   OO
-    96,  -- 1 whole note    O
+    -- Adding 1000 = triple mode: 0, 1, 2
+    1288, -- 3 whole notes   OOO, OOO OOO
+    1096,  -- 1 whole note    O, OO
     48,  -- half note       o
     24,  -- quarter note    .
     12,  -- eighth note     x
     6,   -- 16th note       xx
     3,   -- 32th note       xxx
-    1,   -- 1 tuplet, 2 tuplet
+    1001,   -- 1 tuplet, 2 tuplet
     'global',
   },
 }
@@ -90,7 +93,7 @@ local BITS = {
 local BIT_STATE = {
   'Off',
   'Green',
-  'Amber',
+  'LightAmber',
   'LightRed', -- mute
 }
 
@@ -158,17 +161,15 @@ press[2] = lib.selectNote
 press[3] = lib.selectNote
 
 function lib:editEvent(e, row, col)
-  local row = row or (e.id % 16)
-  local col = col or (e.id - 16*row)
   -- turn off highlight current event
   if self.btn then
     -- current on button
-    self.btn:setState(self.event.is_new and 'Off' or 'Amber')
+    self.btn:setState(self.event.is_new and 'Off' or 'LightAmber')
   end
   self.event = e
   self.btn = self.pad:button(row, col)
   self.pad:prepare()
-    self.btn:setState('Green')
+    self.btn:setState('LightGreen')
     -- Load event state in rows 4 to 8
     -- position is at row ROW_INDEX.position
     private.loadParam(self, 'position', e)
@@ -188,18 +189,40 @@ function lib:editEvent(e, row, col)
   self.pad:commit()
 end
 
+function lib:setEventState(e)
+  local id = e.id
+  local row = math.floor(id/16) + 1
+  local col = (id % 16)
+  local btn = self.pad:button(row, col)
+  if self.event == e then
+    if e.off_t then
+      -- Note is on
+      btn:setState('Green')
+    else
+      -- Note is off
+      btn:setState('LightGreen')
+    end
+  else
+    if e.off_t then
+      -- Note is on
+      btn:setState('Amber')
+    else
+      -- Note is off
+      btn:setState('LightAmber')
+    end
+  end
+end
+
 for _, key in ipairs(PARAMS) do
   press[ROW_INDEX[key]] = function(self, row, col)
     private.setParam(self, key, row, col)
   end
 end
 
+-- Also used by LBatchView
 function private:setParam(key, row, col)
   local states = BIT_STATE
   local seq = self.seq
-  if key == 'loop' and seq.global_loop then
-    states = GLOBAL_LOOP_BIT_STATE
-  end
   local e = self.event
   if not e then
     -- Red ?
@@ -207,6 +230,7 @@ function private:setParam(key, row, col)
   end
   local p
   if key == 'loop' and seq.global_loop then
+    states = GLOBAL_LOOP_BIT_STATE
     p = seq.global_loop
   else
     p = e[key]
@@ -241,8 +265,13 @@ function private:setParam(key, row, col)
       return
     end
   elseif r then
+    local tuplet = false
+    if r > 1000 then -- tuplet bit
+      tuplet = true
+      r = r - 1000
+    end
     p = p - b * r
-    if col == 8 and (key == 'loop' or key == 'length' or key == 'position') then
+    if tuplet then
       -- tuplet bit
       b = (b + 1) % 3
     elseif b == 0 then
@@ -262,20 +291,27 @@ function private:setParam(key, row, col)
   else
     b = 0
   end
-  self.btns[key][col]:setState(states[b+1])
+  self.btns[key][row][col]:setState(states[b+1])
 end
 
-function private:loadParam(key, e, value, states)
+function private:loadParam(key, e, value, states, row)
   local states = states or BIT_STATE
   local value = value or (e and e[key]) or 0
+  local row = row or ROW_INDEX[key]
+
   local btns = self.btns[key]
+  if not btns then
+    btns = {}
+    self.btns[key] = btns
+  end
+  btns = btns[row]
+
   local pad = self.pad
   local bits = {}
   self.bits[key] = bits
   if not btns then
-    local row = ROW_INDEX[key]
     btns = {}
-    self.btns[key] = btns
+    self.btns[key][row] = btns
     for i=1,9 do
       btns[i] = pad:button(row, i)
     end
@@ -295,6 +331,10 @@ function private:loadParam(key, e, value, states)
         b = 0
       end
     elseif r then
+      if r > 1000 then
+        -- tuplet
+        r = r - 1000
+      end
       b = math.floor(value / r)
       if key == 'note' and b > 1 then
         b = 1
@@ -307,3 +347,10 @@ function private:loadParam(key, e, value, states)
     btns[i]:setState(states[b+1])
   end
 end
+
+-- Share some private stuff with LBatchView
+lib.batch = {
+  loadParam = private.loadParam,
+  setParam  = private.setParam,
+}
+
