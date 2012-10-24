@@ -41,8 +41,15 @@ end
 
 function lib:clear()
   self.out:send(176, 0, 0)
-  for id, btn in ipairs(self.buttons) do
-    btn.state = 'Off'
+  local buttons = self.buttons
+  for row=0,8 do
+    for col=1,9 do
+      local id = row * 16 + col
+      local btn = buttons[id]
+      if btn then
+        btn.state = 'Off'
+      end
+    end
   end
 end
 
@@ -100,9 +107,9 @@ end
 
 -- A view acts as a delegate for all received midi operations. It should
 -- respond to 'display()', 'press(row, col)' and 'release(row, col)'.
-function lib:loadView(view)
+function lib:loadView(view, ...)
   self.view = view
-  view:display()
+  view:display(...)
 end
 
 -- bit 1 (1 ) : DISPLAY buffer

@@ -36,7 +36,7 @@ function lib.new(sequencer)
   return setmetatable(self, lib)
 end
 
-function lib:loadView(name)
+function lib:loadView(name, ...)
   local view = self.views[name]
   if not view then
     local t = seq['L'..name..'View']
@@ -48,7 +48,7 @@ function lib:loadView(name)
     end
   end
   self.view = view
-  self.pad:loadView(view)
+  self.pad:loadView(view, ...)
 end
 
 -- Default actions when not implemented in view.

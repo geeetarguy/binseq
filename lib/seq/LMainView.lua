@@ -9,9 +9,9 @@
   [ LightAmber = defined events. Click = load event below  ]
   [ "                                                 ]
   [ "                                                 ]
-  [ velocity (0 = remove event)                       ]
-
   [ note (midi note value)                            ]
+
+  [ velocity (0 = remove event)                       ]
   [ length                                            ]
   [ position                                          ]
   [ loop length (per event)                           ] (use this as global)
@@ -20,8 +20,10 @@
 local lib = {type = 'seq.LMainView'}
 lib.__index         = lib
 seq.LMainView       = lib
+-- Last column operation to function
+local col_button    = {}
 -- Map row operation to function
-local press         = {}
+local grid_button   = {}
 -- Map top buttons
 local top_button    = {}
 -- Map row operation to function
@@ -29,10 +31,12 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local PARAMS = {'note', 'velocity', 'length', 'position', 'loop'}
+local PARAMS = {'', '', '', 'note', 'velocity', 'length', 'position', 'loop'}
 local ROW_INDEX = {}
 for i, k in ipairs(PARAMS) do
-  ROW_INDEX[k] = i + 3
+  if k ~= '' then
+    ROW_INDEX[k] = i
+  end
 end
 
 local BITS = {
@@ -88,7 +92,6 @@ local BITS = {
     6,   -- 16th note       xx
     3,   -- 32th note       xxx
     1001,   -- 1 tuplet, 2 tuplet
-    'global',
   },
 }
 
@@ -126,12 +129,41 @@ function lib.new(lseq)
   return setmetatable(self, lib)
 end
 
--- Display view content
+-- Display view content (called on load)
 function lib:display()
+  local pad = self.pad
+  local seq = self.seq
+  -- Clear
+  pad:clear()
+  -- Display events
+  for id, e in ipairs(seq.partition.events) do
+    local id = e.id
+    local row = math.floor(id/16) + 1
+    local col = (id % 16)
+    pad:button(row, col):setState('LightAmber')
+  end
+  local e = self.event
+  if e then
+    local id = e.id
+    if id then
+      local row = math.floor(id/16) + 1
+      local col = (id % 16)
+      self.event = nil
+      self.btn   = nil
+      self:editEvent(e, row, col)
+    end
+  end
 end
 
 function lib:press(row, col)
-  local f = press[row]
+  local f
+  if row == 0 then
+    f = top_button[col]
+  elseif col == 9 then
+    f = col_button[row]
+  else
+    f = grid_button[row]
+  end
   if f then
     f(self, row, col)
   else
@@ -145,6 +177,17 @@ function lib:release(row, col)
     f(self, row, col)
   else
     self.lseq:release(row, col)
+  end
+end
+
+-- Last column buttons
+function private:batchButton(row, col)
+  local key = PARAMS[row]
+  self.lseq:loadView('Batch', key)
+end
+for i, key in ipairs(PARAMS) do
+  if key ~= '' then
+    col_button[i] = private.batchButton
   end
 end
 
@@ -164,9 +207,9 @@ function lib:selectNote(row, col)
   end
   self:editEvent(e, row, col)
 end
-press[1] = lib.selectNote
-press[2] = lib.selectNote
-press[3] = lib.selectNote
+grid_button[1] = lib.selectNote
+grid_button[2] = lib.selectNote
+grid_button[3] = lib.selectNote
 
 function lib:editEvent(e, row, col)
   -- turn off highlight current event
@@ -190,7 +233,7 @@ function lib:editEvent(e, row, col)
         else
           private.loadParam(self, key, e)
         end
-      else
+      elseif key ~= '' then
         private.loadParam(self, key, e)
       end
     end
@@ -221,17 +264,6 @@ function lib:setEventState(e)
   end
 end
 
-function private:topButton(row, col)
-  local f = top_button[col]
-  if f then
-    f(self, row, col)
-  else
-    -- ignore
-    self.lseq:press(row, col)
-  end
-end
-press[0] = private.topButton
-
 function private:copyEvent(row, col)
   if self.copy_event then
     self.copy_event = nil
@@ -249,8 +281,10 @@ end
 top_button[5] = private.copyEvent
 
 for _, key in ipairs(PARAMS) do
-  press[ROW_INDEX[key]] = function(self, row, col)
-    private.setParam(self, key, row, col)
+  if key ~= '' then
+    grid_button[ROW_INDEX[key]] = function(self, row, col)
+      private.setParam(self, key, row, col)
+    end
   end
 end
 
@@ -281,20 +315,20 @@ function private:setParam(key, row, col)
       self.event = seq:setEvent(e.id, {
         mute = b == 3
       })
-    elseif r == 'global' and key == 'loop' then
-      -- set current value for 'key' as global parameter
-      if seq.global_loop then
-        -- turn off
-        seq.global_loop_value = seq.global_loop
-        seq:setGlobalLoop(nil)
-        private.loadParam(self, key, e)
-        b = 0
-      else
-        -- turn on
-        seq:setGlobalLoop(seq.global_loop_value or 96)
-        private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
-        b = 2
-      end
+    -- elseif r == 'global' and key == 'loop' then
+    --   -- set current value for 'key' as global parameter
+    --   if seq.global_loop then
+    --     -- turn off
+    --     seq.global_loop_value = seq.global_loop
+    --     seq:setGlobalLoop(nil)
+    --     private.loadParam(self, key, e)
+    --     b = 0
+    --   else
+    --     -- turn on
+    --     seq:setGlobalLoop(seq.global_loop_value or 96)
+    --     private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
+    --     b = 2
+    --   end
     else
       -- ignore
       return
@@ -315,14 +349,14 @@ function private:setParam(key, row, col)
       b = 0
     end
     bits[col] = b
-    if key == 'loop' and seq.global_loop then
-      -- update global loop
-      seq:setGlobalLoop(p + b * r)
-    else
+    -- if key == 'loop' and seq.global_loop then
+    --   -- update global loop
+    --   seq:setGlobalLoop(p + b * r)
+    -- else
       self.event = seq:setEvent(e.id, {
         [key] = p + b * r,
       })
-    end
+    --end
   else
     b = 0
   end
@@ -347,20 +381,18 @@ function private:loadParam(key, e, value, states, row)
   if not btns then
     btns = {}
     self.btns[key][row] = btns
-    for i=1,9 do
+    for i=1,8 do
       btns[i] = pad:button(row, i)
     end
   end
   
   local bit_values = BITS[key]
-  for i=1,9 do
+  for i=1,8 do
     local r = bit_values[i]
     local b
     if type(r) == 'string' then
       if r == 'mute' then
         b = e.mute and 3 or 0
-      elseif r == 'global' and key == 'loop' then
-        b = self.seq.global_loop and 1 or 0
       else
         -- ignore
         b = 0
@@ -387,5 +419,6 @@ end
 lib.batch = {
   loadParam = private.loadParam,
   setParam  = private.setParam,
+  PARAMS    = PARAMS,
 }
 
