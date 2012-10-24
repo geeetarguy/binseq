@@ -18,6 +18,7 @@ local lib = {type = 'seq.Event'}
 lib.__index      = lib
 seq.Event    = lib
 local private    = {}
+local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity'}
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -46,17 +47,31 @@ end
 -- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
   local need_schedule = false
-  for key, value in pairs(def) do
-    if key == 'length' then
-      if self.off_t then
-        self.off_t = self.off_t - self.length + value
+  if def.id then
+    -- copy
+    need_schedule = true
+    for _, key in ipairs(COPY_KEYS) do
+      if key == 'length' then
+        if self.off_t then
+          self.off_t = self.off_t - self.length + value
+        end
       end
-      need_schedule = true
-    elseif not need_schedule and key == 'position' or key == 'loop' then
-      need_schedule = true
+      self[key] = def[key]
     end
-    self[key] = value
+  else
+    for key, value in pairs(def) do
+      if key == 'length' then
+        if self.off_t then
+          self.off_t = self.off_t - self.length + value
+        end
+        need_schedule = true
+      elseif not need_schedule and key == 'position' or key == 'loop' then
+        need_schedule = true
+      end
+      self[key] = value
+    end
   end
+
   return need_schedule
 end
 

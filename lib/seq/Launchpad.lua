@@ -70,10 +70,10 @@ function lib:receiveMidi(a, b, c)
   local btn_id
 
   if a == 176 then
-    -- top button event
-    btn_id = b - 104
+    -- top button event (1 indexed)
+    btn_id = b - 103
   else
-    -- grid button event
+    -- grid button event (1 indexed)
     btn_id = b + 17
   end
   local row = math.floor(btn_id / 16)

@@ -22,6 +22,8 @@ lib.__index         = lib
 seq.LMainView       = lib
 -- Map row operation to function
 local press         = {}
+-- Map top buttons
+local top_button    = {}
 -- Map row operation to function
 local release       = {}
 local private       = {}
@@ -154,6 +156,12 @@ function lib:selectNote(row, col)
     e.id = id
     e.is_new = true
   end
+  if self.copy_event then
+    e = self.seq:setEvent(id, self.copy_event)
+    e.mute = true
+    self.copy_event = nil
+    self.copy_btn:setState('Off')
+  end
   self:editEvent(e, row, col)
 end
 press[1] = lib.selectNote
@@ -212,6 +220,33 @@ function lib:setEventState(e)
     end
   end
 end
+
+function private:topButton(row, col)
+  local f = top_button[col]
+  if f then
+    f(self, row, col)
+  else
+    -- ignore
+    self.lseq:press(row, col)
+  end
+end
+press[0] = private.topButton
+
+function private:copyEvent(row, col)
+  if self.copy_event then
+    self.copy_event = nil
+    self.copy_btn:setState('Off')
+  else
+    self.copy_event = self.event
+    local btn = self.copy_btn
+    if not btn then
+      btn = self.pad:button(row, col)
+      self.copy_btn = btn
+    end
+    btn:setState('Green')
+  end
+end
+top_button[5] = private.copyEvent
 
 for _, key in ipairs(PARAMS) do
   press[ROW_INDEX[key]] = function(self, row, col)
