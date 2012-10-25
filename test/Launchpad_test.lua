@@ -20,42 +20,23 @@ function should.returnButton()
   assertEqual('seq.LButton', b.type)
 end
 
-function withuser.should.communicatewithlaunchpad(t)
-  local l = seq.launchpad()
+function withUser.should.communicateWithLaunchpad(t)
+  local l = seq.Launchpad()
   local btn = l:button(1,1)
-  btn:setstate 'blinkgreen'
+  btn:setstate 'BlinkGreen'
   function btn:press()
-    self:setstate('amber')
+    self:setState('Amber')
   end
 
   function btn:release()
-    self:setstate('off')
+    self:setState('Off')
     t.continue = true
   end
 
   t:timeout(function()
     return t.continue
   end)
-  asserttrue(t.continue)
-end
-
-function withuser.should.prepareAndCommit(t)
-  local l = seq.launchpad()
-  local btn = l:button(1,1)
-  btn:setstate 'blinkgreen'
-  function btn:press()
-    self:setstate('amber')
-  end
-
-  function btn:release()
-    self:setstate('off')
-    t.continue = true
-  end
-
-  t:timeout(function()
-    return t.continue
-  end)
-  asserttrue(t.continue)
+  assertTrue(t.continue)
 end
 
 function should.setDefaultButtonAction(t)
@@ -81,8 +62,6 @@ function should.setDefaultButtonAction(t)
 
   assertValueEqual({2,4}, t.released)
 end
-
-
 
 test.all()
 

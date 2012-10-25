@@ -138,3 +138,38 @@ function lib:trigger(chan)
     return chan - 1 + 0x90, self.note, self.velocity
   end
 end
+
+-- Return the id (1 based) from (1 based) row (display as list)
+function lib.rowToId(row, page)
+  return page * 8 + row
+end
+
+-- Return the (1 based) row (display as list) from id (1 based)
+function lib.idToRow(id, page)
+  local row = id - page * 8
+  if row >= 1 and row <= 8 then
+    return row
+  else
+    return nil
+  end
+end
+
+-- Return the row and column from id (1 based)
+function lib.idToGrid(id, page, rows_per_page)
+  local id = id - 1
+  local rows_per_page = rows_per_page or 3
+  local col = id % 8
+  local row = math.floor(id / 8) - page * rows_per_page
+  if row >= 0 and row < rows_per_page then
+    return row + 1, col + 1
+  else
+    return nil
+  end
+end
+
+-- Return the id from (1 based) row and column.
+function lib.gridToId(row, col, page, rows_per_page)
+  local rows_per_page = rows_per_page or 3
+  return (page*rows_per_page + row - 1)*8 + col
+end
+

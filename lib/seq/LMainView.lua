@@ -31,13 +31,15 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local PARAMS = {'', '', '', 'note', 'velocity', 'position', 'length', 'loop'}
+local PARAMS = {'', '', '', 'note', 'velocity', 'length', 'position', 'loop'}
 local ROW_INDEX = {}
 for i, k in ipairs(PARAMS) do
   if k ~= '' then
     ROW_INDEX[k] = i
   end
 end
+local idToGrid = seq.Event.idToGrid
+local gridToId = seq.Event.gridToId
 
 local BITS = {
   note     = {
@@ -139,6 +141,8 @@ function lib.new(lseq)
     btns = {},
     -- direct access to bit values (ex: bits.position[col])
     bits = {},
+    -- default pagination
+    page = 0,
   }
   return setmetatable(self, lib)
 end
@@ -158,7 +162,7 @@ function lib:display()
 
   for row=1,3 do
     for col=1,8 do
-      local id = row*16 + col
+      local id = gridToId(row, col, self.page)
       local e = events[id]
       if e then
         self:setEventState(e)
@@ -171,11 +175,12 @@ function lib:display()
   if e then
     local id = e.id
     if id then
-      local row = math.floor(id/16) + 1
-      local col = (id % 16)
+      local row, col = idToGrid(id, self.page)
       self.event = nil
-      self.btn   = nil
-      self:editEvent(e, row, col)
+      if row then
+        self.btn   = nil
+        self:editEvent(e, row, col)
+      end
     end
   end
 end
@@ -217,7 +222,7 @@ for i, key in ipairs(PARAMS) do
 end
 
 function lib:selectNote(row, col)
-  local id = (row-1)*16 + col
+  local id = gridToId(row, col, self.page)
   local e = self.seq:getEvent(id)
   if not e then
     e = seq.Event()
@@ -273,8 +278,10 @@ end
 
 function lib:setEventState(e)
   local id = e.id
-  local row = math.floor(id/16) + 1
-  local col = (id % 16)
+  local row, col = idToGrid(id, self.page)
+  if not row then
+    return
+  end
   local btn = self.pad:button(row, col)
   local b = 2
   if e.off_t then
@@ -343,8 +350,6 @@ function private:setParam(key, row, col, e, states)
       })
       -- reload event
       local id = e.id
-      local row = math.floor(id/16) + 1
-      local col = (id % 16)
       self:editEvent(e, row, col)
       return
     else

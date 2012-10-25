@@ -19,7 +19,7 @@ function should.setDefaultsOnCreate()
     mute     = true,
     loop     = 24,
     position = 0,
-    velocity = 48,
+    velocity = 80,
     note     = 0,
     length   = 6,
   }, e)
@@ -269,6 +269,46 @@ function should.allowNoteChangeInNoteOn()
   local a, note = e:trigger()
   assertEqual(72, note)
   assertEqual(0x90, a)
+end
+
+local rowToId  = seq.Event.rowToId
+function should.computeRowToId()
+  assertEqual(1,  rowToId(1, 0))
+  assertEqual(11, rowToId(3, 1))
+  assertEqual(17, rowToId(1, 2))
+end
+
+local idToRow  = seq.Event.idToRow
+function should.computeIdToRow()
+  assertEqual(1,  idToRow(1, 0))
+  assertEqual(3,  idToRow(11, 1))
+  assertEqual(1,  idToRow(17, 2))
+  assertNil(idToRow(1, 2))
+  assertNil(idToRow(17, 1))
+end
+
+local idToGrid = seq.Event.idToGrid
+local function assertPairEqual(a, b, c, d)
+  assertEqual(a, c)
+  assertEqual(b, d)
+end
+
+function should.computeIdToGrid()
+  assertPairEqual(1, 1, idToGrid(1, 0))
+  assertPairEqual(1, 3, idToGrid(3, 0))
+  assertPairEqual(3, 1, idToGrid(17, 0))
+  assertPairEqual(2, 2, idToGrid(34, 1))
+  assertNil(idToGrid(1, 1))
+  assertNil(idToGrid(25, 0))
+end
+
+local gridToId = seq.Event.gridToId
+function should.computeGridToId()
+  assertEqual(1,  gridToId(1, 1, 0))
+  assertEqual(3,  gridToId(1, 3, 0))
+  assertEqual(27, gridToId(1, 3, 1))
+  assertEqual(10, gridToId(2, 2, 0))
+  assertEqual(34, gridToId(2, 2, 1))
 end
 
 test.all()

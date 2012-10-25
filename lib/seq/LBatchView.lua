@@ -42,6 +42,8 @@ for i, key in ipairs(PARAMS) do
     KEY_TO_ROW[key] = i
   end
 end
+local rowToId = seq.Event.rowToId
+local idToRow = seq.Event.idToRow
 
 local NOTE_ON_STATE = {
   'Green',
@@ -118,19 +120,20 @@ function lib:display(key, page)
   private.setPageButtons(self, page)
 
   -- Display events
-  local row = 1
   local row_by_id = {}
   self.row_by_id = row_by_id
 
   local part_events = seq.partition.events
   for row=1,8 do
-    local id = page*16 + row
+    local id = rowToId(row, page)
     local e = part_events[id]
     if e then
       private.loadParam(self, key, e, e[key], BIT_STATE, row)
       row_by_id[e.id] = row
       events[row] = e
       self:setEventState(e)
+    else
+      events[row] = nil
     end
   end
   pad:button(KEY_TO_ROW[key], 9):setState('Amber')
@@ -158,8 +161,14 @@ function lib:setEventState(e)
 end
 
 -- Used to reload event data on mute change
-function lib:editEvent(e, row, col)
-  private.loadParam(self, self.key, e, e[key], BIT_STATE, row)
+function lib:editEvent(e)
+  local row = idToRow(e.id, self.page)
+
+  if row then
+    self.row_by_id[e.id] = row
+    self.events[row] = e
+    private.loadParam(self, self.key, e, e[self.key], BIT_STATE, row)
+  end
 end
 
 function lib:press(row, col)
@@ -201,11 +210,27 @@ end
 
 function private:pressGrid(row, col)
   local e = self.events[row]
+  if not e then
+    -- Copy last event
+    -- Id is current page
+    local id = rowToId(row, self.page)
+    if self.last_e then
+      e = self.seq:setEvent(id, self.last_e)
+      e.mute = true
+    else
+      -- new
+      e = self.seq:setEvent(id, seq.Event())
+    end
+    e[self.key] = 0
+    -- Reload content
+    self:editEvent(e)
+  end
   if col == 1 then
     private.setParam(self, self.key, row, col, e, e.off_t and NOTE_ON_STATE or NOTE_OFF_STATE)
   else
     private.setParam(self, self.key, row, col, e, BIT_STATE)
   end
+  self.last_e = e
 end
 
 -- Last column buttons

@@ -24,7 +24,8 @@ function lib.new()
   local self = {
     lin = midi.In('Launchpad'),
     out = midi.Out('Launchpad'),
-    buttons = {}
+    buttons = {},
+    copy_bit = 4,
   }
   function self.lin.rawReceive(lin, a, b, c)
     self:receiveMidi(a, b, c)
