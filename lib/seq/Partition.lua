@@ -29,7 +29,24 @@ function lib.new()
     events = {
       count = 0,
     },
+    events_list = {},
   }
   return setmetatable(self, lib)
 end
 
+function lib:addEvent(id, e)
+  local events = self.events
+  local list = self.events_list
+  if events[id] then
+    -- remove from list
+    for i,e in ipairs(list) do
+      if e.id == id then
+        table.remove(list)
+        break
+      end
+    end
+  else
+    events[id] = e
+    table.insert(list, e)
+  end
+end

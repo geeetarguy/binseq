@@ -53,7 +53,7 @@ function lib:setEvent(id, def)
     new_event = true
     e = seq.Event()
     e.id = id
-    self.partition.events[id] = e
+    self.partition:addEvent(id, e)
   end
   if e:set(def) or new_event then
     private.schedule(self, e)

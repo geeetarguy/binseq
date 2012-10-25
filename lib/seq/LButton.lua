@@ -19,13 +19,13 @@ local private       = {}
 -- bit 5, 6 (16, 32) : => Green
 -- bit 7    (64    ) : must be 0   
 COLOR_TO_NB = {
-  Off        = 4,
-  LightRed   = 5,   -- 1 + 4
-  Red        = 7,   -- 1 + 2 + 4
-  LightAmber = 21,  -- 1 + 16 + 4
-  Amber      = 55,  -- 16 + 32 + 1 + 2 + 4
-  LightGreen = 20,  -- 16 + 4
-  Green      = 52,  -- 16 + 32 + 4
+  Off        = 0,-- 4,
+  LightRed   = 1, -- 5,   -- 1 + 4
+  Red        = 3, -- 7,   -- 1 + 2 + 4
+  LightAmber = 17, -- 21,  -- 1 + 16 + 4
+  Amber      = 51, -- 55,  -- 16 + 32 + 1 + 2 + 4
+  LightGreen = 16, -- 20,  -- 16 + 4
+  Green      = 48, -- 52,  -- 16 + 32 + 4
   -- Blinking version
   BlinkLightRed   = 9,   -- 1 + 8
   BlinkRed        = 11,   -- 1 + 2 + 8
@@ -65,7 +65,7 @@ end
 function lib:setState(color)
   if color ~= self.state then
     self.state = color
-    self.pad.out:send(self.midi_a, self.midi_b, COLOR_TO_NB[color])
+    self.pad:send(self.midi_a, self.midi_b, COLOR_TO_NB[color])
   end
 end
 

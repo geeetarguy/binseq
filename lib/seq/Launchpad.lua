@@ -32,10 +32,11 @@ function lib.new()
   setmetatable(self, lib)
   -- clear Launchpad
   self:clear()
-  -- set blink mode
-  self:blink('auto')
+  self.out:send(176, 0, 48)
+  -- -- set blink mode
+  -- self:blink('auto')
   -- make sure display/update buffers are in 'commit' mode
-  self:commit()
+  -- self:commit()
   return self
 end
 
@@ -121,12 +122,22 @@ end
 -- bit 7 (64) : must be 0
 -- start double buffering
 function lib:prepare()
+  -- Do not add copy bit on prepare/commit
+  self.copy_bit = 0
   -- DISPLAY in 1, UPDATE in 0
-  self.out:send(176, 0, 41)
+  -- 1 + 0 + 0 + 0 + 16 + 32 = 49
+  self.out:send(176, 0, 49)
 end
 
 -- commit changes
 function lib:commit()
+  -- Add copy bit after commit
+  self.copy_bit = 4
   -- DISPLAY in 0, UPDATE in 0
-  self.out:send(176, 0, 40)
+  -- 0 + 0 + 0 + 0 + 16 + 32 = 48
+  self.out:send(176, 0, 48)
 end  
+
+function lib:send(a, b, c)
+  self.out:send(a, b, c + self.copy_bit)
+end

@@ -17,7 +17,7 @@
   [ loop length (per event)                           ] (use this as global)
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LMainView'}
+local lib = {type = 'seq.LMainView', name = 'Main'}
 lib.__index         = lib
 seq.LMainView       = lib
 -- Last column operation to function
@@ -31,7 +31,7 @@ local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
-local PARAMS = {'', '', '', 'note', 'velocity', 'length', 'position', 'loop'}
+local PARAMS = {'', '', '', 'note', 'velocity', 'position', 'length', 'loop'}
 local ROW_INDEX = {}
 for i, k in ipairs(PARAMS) do
   if k ~= '' then
@@ -62,18 +62,18 @@ local BITS = {
   },
   length = {
     -- Adding 1000 = triple mode: 0, 1, 2
-    1288, -- 3 whole notes   OOO, OOO OOO
+    1384,  -- 4 whole notes   OOO, OOO OOO
     1096,  -- 1 whole note    O, OO
-    48,  -- half note       o
-    24,  -- quarter note    .
-    12,  -- eighth note     x
-    6,   -- 16th note       xx
-    3,   -- 32th note       xxx
+    48,    -- half note       o
+    24,    -- quarter note    .
+    12,    -- eighth note     x
+    6,     -- 16th note       xx
+    3,     -- 32th note       xxx
     1001,   -- 1 tuplet, 2 tuplet
   },
   position = {
     -- Adding 1000 = triple mode: 0, 1, 2
-    1288, -- 3 whole notes   OOO, OOO OOO
+    1384,  -- 4 whole notes   OOO, OOO OOO
     1096,  -- 1 whole note    O, OO
     48,  -- half note       o
     24,  -- quarter note    .
@@ -84,7 +84,7 @@ local BITS = {
   },
   loop = {
     -- Adding 1000 = triple mode: 0, 1, 2
-    1288, -- 3 whole notes   OOO, OOO OOO
+    1384,  -- 4 whole notes   OOOO, OOOOOOOO
     1096,  -- 1 whole note    O, OO
     48,  -- half note       o
     24,  -- quarter note    .
@@ -97,10 +97,15 @@ local BITS = {
 
 local BIT_STATE = {
   'Off',
+  'Amber',
   'Green',
-  'LightAmber',
-  'LightRed', -- mute
+  -- mute states
+  'Off',
+  'LightRed',
+  'LightRed',
+  'Red', -- mute button
 }
+
 
 local GLOBAL_LOOP_BIT_STATE = {
   'Off',
@@ -108,6 +113,15 @@ local GLOBAL_LOOP_BIT_STATE = {
   'LightGreen',
 }
 
+local EVENT_LIST = {
+  'Off',
+  'LightGreen',
+  'LightAmber', -- loaded
+  '', -- Never occurs (cannot have NoteOn of inexistant event)
+  'Green', -- NoteOn
+  'Amber', -- NoteOn on loaded
+  'LightRed', -- muted
+}
 --=============================================== PUBLIC
 setmetatable(lib, {
   __call = function(lib, ...)
@@ -133,16 +147,27 @@ end
 function lib:display()
   local pad = self.pad
   local seq = self.seq
+  local events = seq.partition.events
+  local event = self.event
   -- Clear
+  pad:prepare()
   pad:clear()
   -- Display events
-  for id, e in ipairs(seq.partition.events) do
-    local id = e.id
-    local row = math.floor(id/16) + 1
-    local col = (id % 16)
-    pad:button(row, col):setState('LightAmber')
+  -- Turn on mixer button
+  pad:button(0, 8):setState('Green')
+
+  for row=1,3 do
+    for col=1,8 do
+      local id = row*16 + col
+      local e = events[id]
+      if e then
+        self:setEventState(e)
+      end
+    end
   end
-  local e = self.event
+  pad:commit()
+
+  local e = event
   if e then
     local id = e.id
     if id then
@@ -212,15 +237,21 @@ grid_button[2] = lib.selectNote
 grid_button[3] = lib.selectNote
 
 function lib:editEvent(e, row, col)
+  -- last event
+  local le = self.event
+  self.event = e
   -- turn off highlight current event
   if self.btn then
     -- current on button
-    self.btn:setState(self.event.is_new and 'Off' or 'LightAmber')
+    if le.is_new then
+      self.btn:setState(EVENT_LIST[1])
+    else
+      self:setEventState(le)
+    end
   end
-  self.event = e
   self.btn = self.pad:button(row, col)
   self.pad:prepare()
-    self.btn:setState('LightGreen')
+    self:setEventState(e)
     -- Load event state in rows 4 to 8
     -- position is at row ROW_INDEX.position
     private.loadParam(self, 'position', e)
@@ -245,23 +276,20 @@ function lib:setEventState(e)
   local row = math.floor(id/16) + 1
   local col = (id % 16)
   local btn = self.pad:button(row, col)
-  if self.event == e then
-    if e.off_t then
-      -- Note is on
-      btn:setState('Green')
-    else
-      -- Note is off
-      btn:setState('LightGreen')
-    end
+  local b = 2
+  if e.off_t then
+    -- NoteOn
+    b = 5
   else
-    if e.off_t then
-      -- Note is on
-      btn:setState('Amber')
-    else
-      -- Note is off
-      btn:setState('LightAmber')
-    end
+    b = 2
   end
+
+  if e == self.event then
+    b = b + 1
+  elseif e.mute then
+    b = 7
+  end
+  btn:setState(EVENT_LIST[b])
 end
 
 function private:copyEvent(row, col)
@@ -280,6 +308,12 @@ function private:copyEvent(row, col)
 end
 top_button[5] = private.copyEvent
 
+function private:loadBatch(row, col)
+  self.lseq:loadView('Batch')
+end
+top_button[8] = private.loadBatch
+
+
 for _, key in ipairs(PARAMS) do
   if key ~= '' then
     grid_button[ROW_INDEX[key]] = function(self, row, col)
@@ -289,46 +323,30 @@ for _, key in ipairs(PARAMS) do
 end
 
 -- Also used by LBatchView
-function private:setParam(key, row, col)
-  local states = BIT_STATE
+function private:setParam(key, row, col, e, states)
+  local states = states or BIT_STATE
   local seq = self.seq
-  local e = self.event
+  local e = e or self.event
   if not e then
     -- Red ?
     return
   end
-  local p
-  if key == 'loop' and seq.global_loop then
-    states = GLOBAL_LOOP_BIT_STATE
-    p = seq.global_loop
-  else
-    p = e[key]
-  end
+  local p = e[key]
   local r = BITS[key][col]
-  local bits = self.bits[key]
+  local bits = self.bits[key][row]
   local b = bits[col]
   if type(r) == 'string' then
     -- special operation
     if r == 'mute' then
-      b = e.mute and 0 or 3
-      bits[col] = b
       self.event = seq:setEvent(e.id, {
-        mute = b == 3
+        mute = not e.mute
       })
-    -- elseif r == 'global' and key == 'loop' then
-    --   -- set current value for 'key' as global parameter
-    --   if seq.global_loop then
-    --     -- turn off
-    --     seq.global_loop_value = seq.global_loop
-    --     seq:setGlobalLoop(nil)
-    --     private.loadParam(self, key, e)
-    --     b = 0
-    --   else
-    --     -- turn on
-    --     seq:setGlobalLoop(seq.global_loop_value or 96)
-    --     private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
-    --     b = 2
-    --   end
+      -- reload event
+      local id = e.id
+      local row = math.floor(id/16) + 1
+      local col = (id % 16)
+      self:editEvent(e, row, col)
+      return
     else
       -- ignore
       return
@@ -360,13 +378,18 @@ function private:setParam(key, row, col)
   else
     b = 0
   end
-  self.btns[key][row][col]:setState(states[b+1])
+  if e.mute then
+    self.btns[key][row][col]:setState(states[b+4])
+  else
+    self.btns[key][row][col]:setState(states[b+1])
+  end
 end
 
 function private:loadParam(key, e, value, states, row)
   local states = states or BIT_STATE
   local value = value or (e and e[key]) or 0
   local row = row or ROW_INDEX[key]
+  local pad = self.pad
 
   local btns = self.btns[key]
   if not btns then
@@ -374,10 +397,6 @@ function private:loadParam(key, e, value, states, row)
     self.btns[key] = btns
   end
   btns = btns[row]
-
-  local pad = self.pad
-  local bits = {}
-  self.bits[key] = bits
   if not btns then
     btns = {}
     self.btns[key][row] = btns
@@ -385,6 +404,14 @@ function private:loadParam(key, e, value, states, row)
       btns[i] = pad:button(row, i)
     end
   end
+
+  local bits = self.bits[key]
+  if not bits then
+    bits = {}
+    self.bits[key] = bits
+  end
+  bits[row] = {}
+  bits = bits[row]
   
   local bit_values = BITS[key]
   for i=1,8 do
@@ -411,6 +438,9 @@ function private:loadParam(key, e, value, states, row)
       b = 0
     end
     bits[i] = b
+    if e.mute then
+      b = b + 3
+    end
     btns[i]:setState(states[b+1])
   end
 end
@@ -420,5 +450,6 @@ lib.batch = {
   loadParam = private.loadParam,
   setParam  = private.setParam,
   PARAMS    = PARAMS,
+  BIT_STATE = BIT_STATE,
 }
 
