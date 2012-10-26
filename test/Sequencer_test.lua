@@ -14,18 +14,18 @@ function should.autoLoad()
 end
 
 function should.getEventCount()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   assertEqual(0, s:eventCount())
 end
   
 function should.receiveNilOnMissingEvent()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   local e = s:getEvent(1)
   assertNil(e)
 end
 
 function should.createEvent()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s:setEvent(1, {
     position = 0,
     velocity = 120,
@@ -37,7 +37,7 @@ function should.createEvent()
 end
 
 function should.updateEvent()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s:setEvent(1, {
     position = 0,
     velocity = 120,
@@ -53,21 +53,21 @@ function should.updateEvent()
 end
 
 function should.setGlobalLoop()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   assertEqual(nil, s.partition.global_loop)
   s:setGlobalLoop(48)
   assertEqual(48, s.partition.global_loop)
 end
 
 function should.setGlobalStart()
-  local s = seq.Sequencer()
-  assertEqual(0, s.partition.global_start)
+  local s = seq.Sequencer(':memory')
+  assertEqual(0, s.partition.position)
   s:setGlobalStart(48)
-  assertEqual(48, s.partition.global_start)
+  assertEqual(48, s.partition.position)
 end
 
 function should.buildActiveList()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
     loop = 96,
@@ -109,7 +109,7 @@ function should.buildActiveList()
 end
 
 function should.storeTOnTrigger()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   assertEqual(0, s.t)
   local e = s:setEvent(1, {
     position = 14,
@@ -120,7 +120,7 @@ function should.storeTOnTrigger()
 end
 
 function should.rescheduleEventOnTrigger()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
     loop = 96,
@@ -160,7 +160,7 @@ function should.rescheduleEventOnTrigger()
 end
 
 function should.rescheduleEventOnEdit()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192
     -- default loop = 96
@@ -193,7 +193,7 @@ function should.rescheduleEventOnEdit()
 end
 
 function should.rescheduleEventOnEditWithT()
-  local s = seq.Sequencer()
+  local s = seq.Sequencer(':memory')
   s.t = 20
   s:setEvent(1, {
     position = 0,  -- events 0, 96, 192

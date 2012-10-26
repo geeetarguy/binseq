@@ -27,7 +27,7 @@ local col_button    = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
-local m             = seq.LMainView.batch
+local m             = seq.LMainView.common
 
 private.loadParam = m.loadParam
 private.setParam  = m.setParam
@@ -42,8 +42,8 @@ for i, key in ipairs(PARAMS) do
     KEY_TO_ROW[key] = i
   end
 end
-local rowToId = seq.Event.rowToId
-local idToRow = seq.Event.idToRow
+local rowToPosid = seq.Event.rowToPosid
+local posidToRow = seq.Event.posidToRow
 
 local NOTE_ON_STATE = {
   'Green',
@@ -92,9 +92,9 @@ function lib.new(lseq)
     bits = {},
     -- Direct access to grid buttons
     btns = {},
-    -- Edited events (independant of event.id)
+    -- Edited events (independant of event.posid)
     events = {},
-    -- Find event from id
+    -- Find event from posid
     row_by_id = {},
     -- Pagination
     page = 0,
@@ -125,11 +125,11 @@ function lib:display(key, page)
 
   local part_events = seq.partition.events
   for row=1,8 do
-    local id = rowToId(row, page)
-    local e = part_events[id]
+    local posid = rowToPosid(row, page)
+    local e = part_events[posid]
     if e then
       private.loadParam(self, key, e, e[key], BIT_STATE, row)
-      row_by_id[e.id] = row
+      row_by_id[e.posid] = row
       events[row] = e
       self:setEventState(e)
     else
@@ -141,8 +141,8 @@ function lib:display(key, page)
 end
 
 function lib:setEventState(e)
-  local id = e.id
-  local row = self.row_by_id[id]
+  local posid = e.posid
+  local row = self.row_by_id[posid]
   -- Bit value for this element
   if row then
     local b = self.bits[self.key][row][1] + 1
@@ -162,10 +162,10 @@ end
 
 -- Used to reload event data on mute change
 function lib:editEvent(e)
-  local row = idToRow(e.id, self.page)
+  local row = posidToRow(e.posid, self.page)
 
   if row then
-    self.row_by_id[e.id] = row
+    self.row_by_id[e.posid] = row
     self.events[row] = e
     private.loadParam(self, self.key, e, e[self.key], BIT_STATE, row)
   end
@@ -213,13 +213,13 @@ function private:pressGrid(row, col)
   if not e then
     -- Copy last event
     -- Id is current page
-    local id = rowToId(row, self.page)
+    local posid = rowToPosid(row, self.page)
     if self.last_e then
-      e = self.seq:setEvent(id, self.last_e)
+      e = self.seq:setEvent(posid, self.last_e)
       e.mute = true
     else
       -- new
-      e = self.seq:setEvent(id, seq.Event())
+      e = self.seq:setEvent(posid, seq.Event())
     end
     e[self.key] = 0
     -- Reload content

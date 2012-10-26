@@ -19,7 +19,7 @@ setmetatable(lib, {
 })
 
 -- seq.LSeq(...)
-function lib.new(sequencer)
+function lib.new(sequencer, db_path)
   local self = {
     pad = seq.Launchpad(),
     seq = sequencer,

@@ -47,7 +47,7 @@ end
 -- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
   local need_schedule = false
-  if def.id then
+  if def.type == 'seq.Event' then
     -- copy
     need_schedule = true
     for _, key in ipairs(COPY_KEYS) do
@@ -139,14 +139,14 @@ function lib:trigger(chan)
   end
 end
 
--- Return the id (1 based) from (1 based) row (display as list)
-function lib.rowToId(row, page)
+-- Return the posid (1 based) from (1 based) row (display as list)
+function lib.rowToPosid(row, page)
   return page * 8 + row
 end
 
--- Return the (1 based) row (display as list) from id (1 based)
-function lib.idToRow(id, page)
-  local row = id - page * 8
+-- Return the (1 based) row (display as list) from posid (1 based)
+function lib.posidToRow(posid, page)
+  local row = posid - page * 8
   if row >= 1 and row <= 8 then
     return row
   else
@@ -154,12 +154,12 @@ function lib.idToRow(id, page)
   end
 end
 
--- Return the row and column from id (1 based)
-function lib.idToGrid(id, page, rows_per_page)
-  local id = id - 1
+-- Return the row and column from posid (1 based)
+function lib.posidToGrid(posid, page, rows_per_page)
+  local posid = posid - 1
   local rows_per_page = rows_per_page or 3
-  local col = id % 8
-  local row = math.floor(id / 8) - page * rows_per_page
+  local col = posid % 8
+  local row = math.floor(posid / 8) - page * rows_per_page
   if row >= 0 and row < rows_per_page then
     return row + 1, col + 1
   else
@@ -167,9 +167,21 @@ function lib.idToGrid(id, page, rows_per_page)
   end
 end
 
--- Return the id from (1 based) row and column.
-function lib.gridToId(row, col, page, rows_per_page)
+-- Return the posid from (1 based) row and column.
+function lib.gridToPosid(row, col, page, rows_per_page)
   local rows_per_page = rows_per_page or 3
   return (page*rows_per_page + row - 1)*8 + col
 end
 
+function lib:save()
+  -- Write event in database
+  local db = self.db
+  assert(db, 'Cannot save event without database')
+  db:setEvent(self)
+end
+
+function lib:delete()
+  local db = self.db
+  assert(db, 'Cannot delete event without database')
+  db:deleteEvent(self)
+end

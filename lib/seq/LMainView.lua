@@ -38,8 +38,8 @@ for i, k in ipairs(PARAMS) do
     ROW_INDEX[k] = i
   end
 end
-local idToGrid = seq.Event.idToGrid
-local gridToId = seq.Event.gridToId
+local posidToGrid = seq.Event.posidToGrid
+local gridToPosid = seq.Event.gridToPosid
 
 local BITS = {
   note     = {
@@ -73,8 +73,7 @@ local BITS = {
     3,     -- 32th note       xxx
     1001,   -- 1 tuplet, 2 tuplet
   },
-  position = {
-    -- Adding 1000 = triple mode: 0, 1, 2
+  position = { -- Adding 1000 = triple mode: 0, 1, 2
     1384,  -- 4 whole notes   OOO, OOO OOO
     1096,  -- 1 whole note    O, OO
     48,  -- half note       o
@@ -153,6 +152,7 @@ function lib:display()
   local seq = self.seq
   local events = seq.partition.events
   local event = self.event
+  local page = self.page
   -- Clear
   pad:prepare()
   pad:clear()
@@ -162,8 +162,8 @@ function lib:display()
 
   for row=1,3 do
     for col=1,8 do
-      local id = gridToId(row, col, self.page)
-      local e = events[id]
+      local posid = gridToPosid(row, col, page)
+      local e = events[posid]
       if e then
         self:setEventState(e)
       end
@@ -173,9 +173,9 @@ function lib:display()
 
   local e = event
   if e then
-    local id = e.id
-    if id then
-      local row, col = idToGrid(id, self.page)
+    local posid = e.posid
+    if posid then
+      local row, col = posidToGrid(posid, page)
       self.event = nil
       if row then
         self.btn   = nil
@@ -222,15 +222,15 @@ for i, key in ipairs(PARAMS) do
 end
 
 function lib:selectNote(row, col)
-  local id = gridToId(row, col, self.page)
-  local e = self.seq:getEvent(id)
+  local posid = gridToPosid(row, col, self.page)
+  local e = self.seq:getEvent(posid)
   if not e then
     e = seq.Event()
-    e.id = id
+    e.posid = posid
     e.is_new = true
   end
   if self.copy_event then
-    e = self.seq:setEvent(id, self.copy_event)
+    e = self.seq:setEvent(posid, self.copy_event)
     e.mute = true
     self.copy_event = nil
     self.copy_btn:setState('Off')
@@ -277,8 +277,8 @@ function lib:editEvent(e, row, col)
 end
 
 function lib:setEventState(e)
-  local id = e.id
-  local row, col = idToGrid(id, self.page)
+  local posid = e.posid
+  local row, col = posidToGrid(posid, self.page)
   if not row then
     return
   end
@@ -345,11 +345,11 @@ function private:setParam(key, row, col, e, states)
   if type(r) == 'string' then
     -- special operation
     if r == 'mute' then
-      self.event = seq:setEvent(e.id, {
+      self.event = seq:setEvent(e.posid, {
         mute = not e.mute
       })
       -- reload event
-      local id = e.id
+      local posid = e.posid
       self:editEvent(e, row, col)
       return
     else
@@ -376,7 +376,7 @@ function private:setParam(key, row, col, e, states)
     --   -- update global loop
     --   seq:setGlobalLoop(p + b * r)
     -- else
-      self.event = seq:setEvent(e.id, {
+      self.event = seq:setEvent(e.posid, {
         [key] = p + b * r,
       })
     --end
@@ -450,8 +450,8 @@ function private:loadParam(key, e, value, states, row)
   end
 end
 
--- Share some private stuff with LBatchView
-lib.batch = {
+-- Share some private stuff with LBatchView and LPresetView
+lib.common = {
   loadParam = private.loadParam,
   setParam  = private.setParam,
   PARAMS    = PARAMS,

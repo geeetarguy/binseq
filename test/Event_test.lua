@@ -271,44 +271,44 @@ function should.allowNoteChangeInNoteOn()
   assertEqual(0x90, a)
 end
 
-local rowToId  = seq.Event.rowToId
+local rowToPosid  = seq.Event.rowToPosid
 function should.computeRowToId()
-  assertEqual(1,  rowToId(1, 0))
-  assertEqual(11, rowToId(3, 1))
-  assertEqual(17, rowToId(1, 2))
+  assertEqual(1,  rowToPosid(1, 0))
+  assertEqual(11, rowToPosid(3, 1))
+  assertEqual(17, rowToPosid(1, 2))
 end
 
-local idToRow  = seq.Event.idToRow
+local posidToRow  = seq.Event.posidToRow
 function should.computeIdToRow()
-  assertEqual(1,  idToRow(1, 0))
-  assertEqual(3,  idToRow(11, 1))
-  assertEqual(1,  idToRow(17, 2))
-  assertNil(idToRow(1, 2))
-  assertNil(idToRow(17, 1))
+  assertEqual(1,  posidToRow(1, 0))
+  assertEqual(3,  posidToRow(11, 1))
+  assertEqual(1,  posidToRow(17, 2))
+  assertNil(posidToRow(1, 2))
+  assertNil(posidToRow(17, 1))
 end
 
-local idToGrid = seq.Event.idToGrid
+local posidToGrid = seq.Event.posidToGrid
 local function assertPairEqual(a, b, c, d)
   assertEqual(a, c)
   assertEqual(b, d)
 end
 
 function should.computeIdToGrid()
-  assertPairEqual(1, 1, idToGrid(1, 0))
-  assertPairEqual(1, 3, idToGrid(3, 0))
-  assertPairEqual(3, 1, idToGrid(17, 0))
-  assertPairEqual(2, 2, idToGrid(34, 1))
-  assertNil(idToGrid(1, 1))
-  assertNil(idToGrid(25, 0))
+  assertPairEqual(1, 1, posidToGrid(1, 0))
+  assertPairEqual(1, 3, posidToGrid(3, 0))
+  assertPairEqual(3, 1, posidToGrid(17, 0))
+  assertPairEqual(2, 2, posidToGrid(34, 1))
+  assertNil(posidToGrid(1, 1))
+  assertNil(posidToGrid(25, 0))
 end
 
-local gridToId = seq.Event.gridToId
+local gridToPosid = seq.Event.gridToPosid
 function should.computeGridToId()
-  assertEqual(1,  gridToId(1, 1, 0))
-  assertEqual(3,  gridToId(1, 3, 0))
-  assertEqual(27, gridToId(1, 3, 1))
-  assertEqual(10, gridToId(2, 2, 0))
-  assertEqual(34, gridToId(2, 2, 1))
+  assertEqual(1,  gridToPosid(1, 1, 0))
+  assertEqual(3,  gridToPosid(1, 3, 0))
+  assertEqual(27, gridToPosid(1, 3, 1))
+  assertEqual(10, gridToPosid(2, 2, 0))
+  assertEqual(34, gridToPosid(2, 2, 1))
 end
 
 test.all()

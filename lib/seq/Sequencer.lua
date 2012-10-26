@@ -19,9 +19,10 @@ setmetatable(lib, {
 })
 
 -- seq.Sequencer(...)
-function lib.new()
+function lib.new(db_path)
+  local db_path = db_path or os.getenv('HOME') .. '/Documents/seq.db'
   local self = {
-    partitions = {seq.Partition()},
+    db  = seq.PresetDb(db_path),
     t = 0,
     list = {},
     global_loop_value = 24,
@@ -31,15 +32,19 @@ function lib.new()
   return self
 end
 
-function lib:selectPartition(idx)
-  local part = self.partitions[idx]
+function lib:selectPartition(posid)
+  local part = self.db:getPartition(posid)
+  if not part then
+    part = self.db:createPartition(posid)
+  end
   self.partition = part
-  self.global_loop = part.global_loop
-  self.global_start = part.global_start
+  self.global_loop = part.loop > 0 and part.loop
+  self.global_start = part.position
+  self:buildActiveList()
 end
 
 function lib:eventCount()
-  return self.partition.events.count
+  return #self.partition.events_list
 end
 
 function lib:getEvent(id)
@@ -58,6 +63,7 @@ function lib:setEvent(id, def)
   if e:set(def) or new_event then
     private.schedule(self, e)
   end
+  self.partition:save(e)
   return e
 end
 
@@ -70,7 +76,7 @@ end
 
 -- The global start offset.
 function lib:setGlobalStart(s)
-  self.partition.global_start = s
+  self.partition.position = s
   self.global_start = s
   self:buildActiveList(self.t)
 end
