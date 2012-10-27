@@ -9,7 +9,7 @@
   [ Green = playing, Red = playing + auto-save, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LPresetView', name = 'PresetView'}
+local lib = {type = 'seq.LPresetView', name = 'Preset'}
 lib.__index         = lib
 seq.LPresetView     = lib
 -- Last column operation to function
@@ -27,9 +27,10 @@ local PARAMS      = m.PARAMS
 
 local PART_STATE = {
   'Off',        -- no preset
-  'Amber',      -- has preset
+  'LightAmber', -- has preset
   'Green',      -- loaded
-  'Red',        -- loaded with auto-save
+  'Green',      -- loaded with auto-save
+  'Red',        -- ready to delete
 }
 
 --=============================================== PUBLIC
@@ -69,7 +70,7 @@ function lib:display()
   local pad = self.pad
   local seq = self.seq
   local parts = self.partitions
-  local curr  = seq.partition.posid
+  local curr = (seq.partition or {}).posid
   local page = self.page
   -- Clear
   pad:prepare()
@@ -115,17 +116,71 @@ function private:loadMain(row, col)
 end
 top_button[8] = private.loadMain
 
+function private:copyDelPart()
+  local row, col = 0, 5
+  if self.copy_on then
+    self.copy_on = false
+    self.del_on = true
+    self.pad:button(row, col):setState('Red')
+  elseif self.del_on then
+    self.del_on = false
+    self.pad:button(row, col):setState('Off')
+  else
+    -- enable copy
+    self.copy_on = true
+    self.pad:button(row, col):setState('Green')
+  end
+end
+top_button[5] = private.copyDelPart
+
 function private:pressGrid(row, col)
   local pad = self.pad
   local seq = self.seq
   local posid = gridToPosid(row, col, self.page)
   -- Unselect old
-  local cr, cc = posidToGrid(seq.partition.posid, self.page)
+  local curr = (seq.partition or {}).posid
+  if curr then
+    local cr, cc = posidToGrid(curr, self.page)
 
-  if cr then
-    pad:button(cr, cc):setState(PART_STATE[2])
+    if cr then
+      pad:button(cr, cc):setState(PART_STATE[2])
+    end
   end
+
+  if self.copy_on then
+    if posid ~= seq.partition.posid then
+      -- copy current partition to given location
+      seq.db:copyPartition(seq.partition, posid)
+    end
+    self.copy_on = false
+    pad:button(0, 5):setState('Off')
+    pad:button(row, col):setState(PART_STATE[2])
+    return
+  elseif self.del_on == posid then
+    -- delete
+    local p = seq.db:getPartition(posid)
+    p:delete()
+    self.del_on = nil
+    self.pad:button(0, 5):setState('Off')
+    self.partitions[p.posid] = nil
+    if p.posid ~= (self.seq.partition or {}).posid then
+      pad:button(row, col):setState(PART_STATE[1])
+    else
+      pad:button(row, col):setState(PART_STATE[1])
+      self.seq:selectPartition(1)
+      self.partitions[1] = true
+    end
+    return
+  elseif self.del_on then
+    if seq.db:hasPartition(posid) then
+      self.del_on = posid
+      pad:button(row, col):setState(PART_STATE[5])
+    end
+    return
+  end
+
   -- Change partition (creates new if needed)
   self.seq:selectPartition(posid)
+  self.partitions[posid] = true
   pad:button(row, col):setState(PART_STATE[4])
 end

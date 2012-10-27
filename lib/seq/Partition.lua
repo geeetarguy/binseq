@@ -69,3 +69,14 @@ function lib:delete()
   db:deletePartition(self)
 end
 
+function lib:deleteEvent(e)
+  e:delete()
+  self.events[e.posid] = nil
+  for i, le in ipairs(self.events_list) do
+    if le == e then
+      table.remove(self.events_list, i)
+      return
+    end
+  end
+end
+

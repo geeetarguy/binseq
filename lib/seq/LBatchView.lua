@@ -148,7 +148,7 @@ function lib:setEventState(e)
   if row then
     local b = self.bits[self.key][row][1] + 1
     local btn = self.pad:button(row, 1)
-    if e.mute then
+    if e.mute == 1 then
       b = b + 3
     end
     if e.off_t then
@@ -217,7 +217,7 @@ function private:pressGrid(row, col)
     local posid = rowToPosid(row, self.page)
     if self.last_e then
       e = self.seq:setEvent(posid, self.last_e)
-      e.mute = true
+      e.mute = 1
     else
       -- new
       e = self.seq:setEvent(posid, seq.Event())

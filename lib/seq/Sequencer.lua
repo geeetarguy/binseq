@@ -28,11 +28,16 @@ function lib.new(db_path)
     global_loop_value = 24,
   }
   setmetatable(self, lib)
-  self:selectPartition(1)
+  
+  self.destroy = lk.Finalizer(function()
+    private.allOff(self)
+  end)
+
   return self
 end
 
 function lib:selectPartition(posid)
+  private.allOff(self)
   local part = self.db:getPartition(posid)
   if not part then
     part = self.db:createPartition(posid)
@@ -110,7 +115,7 @@ end
 
 function lib:trigger(e)
   -- 1. Trigger event
-  if not e.mute or e.off_t then
+  if e.mute == 0 or e.off_t then
     local f = self.playback
     if f then
       f(self, e)
@@ -223,3 +228,17 @@ function private.insertInList(self, list, e)
     end
   end
 end
+
+function private:allOff()
+  local e = self.list.next
+  while e do
+    local ne = e.next
+    e.prev = nil
+    e.next = nil
+    if e.off_t then
+      self:trigger(e)
+    end
+    e = ne
+  end
+end
+

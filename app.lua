@@ -43,6 +43,4 @@ function s:playback(e)
   out:send(e:trigger())
 end
 
-run(function()
-  ls:loadView('Main')  
-end)
+run()

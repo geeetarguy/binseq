@@ -18,7 +18,7 @@ local lib = {type = 'seq.Event'}
 lib.__index      = lib
 seq.Event    = lib
 local private    = {}
-local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity'}
+local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity', 'mute'}
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -30,7 +30,7 @@ setmetatable(lib, {
 -- seq.Event(...)
 function lib.new(def)
   local self = {
-    mute     = true,
+    mute     = 1,
     position = 0,
     loop     = 24,
     note     = 0,
@@ -51,11 +51,6 @@ function lib:set(def)
     -- copy
     need_schedule = true
     for _, key in ipairs(COPY_KEYS) do
-      if key == 'length' then
-        if self.off_t then
-          self.off_t = self.off_t - self.length + value
-        end
-      end
       self[key] = def[key]
     end
   else
@@ -161,7 +156,7 @@ end
 -- Return the row and column from posid (1 based)
 function lib.posidToGrid(posid, page, rows_per_page)
   local posid = posid - 1
-  local rows_per_page = rows_per_page or 3
+  local rows_per_page = rows_per_page or 8
   local col = posid % 8
   local row = math.floor(posid / 8) - page * rows_per_page
   if row >= 0 and row < rows_per_page then

@@ -147,9 +147,9 @@ end
 
 -- Display view content (called on load)
 function lib:display()
+
   local pad = self.pad
   local seq = self.seq
-  local events = seq.partition.events
   local event = self.event
   local page = self.page
   -- Clear
@@ -158,6 +158,8 @@ function lib:display()
   -- Display events
   -- Turn on mixer button
   pad:button(0, 8):setState('Green')
+
+  local events = seq.partition.events
 
   for row=1,3 do
     for col=1,8 do
@@ -174,7 +176,7 @@ function lib:display()
   if e then
     local posid = e.posid
     if posid then
-      local row, col = posidToGrid(posid, page)
+      local row, col = posidToGrid(posid, page, 3)
       self.event = nil
       if row then
         self.btn   = nil
@@ -204,15 +206,35 @@ function lib:selectNote(row, col)
   local posid = gridToPosid(row, col, self.page)
   local e = self.seq:getEvent(posid)
   if not e then
-    e = seq.Event()
-    e.posid = posid
-    e.is_new = true
+    e = self.seq.partition:createEvent(posid)
   end
-  if self.copy_event then
-    e = self.seq:setEvent(posid, self.copy_event)
-    e.mute = true
-    self.copy_event = nil
+  if self.copy_on then
+    if self.event then
+      e = self.seq:setEvent(posid, self.event)
+      e.mute = 1
+    else
+      return
+    end
+    self.copy_on = false
     self.copy_btn:setState('Off')
+  elseif self.del_on == e.posid then
+    -- delete
+    self.del_on = false
+    self.pad:button(0, 5):setState('Off')
+
+    self.seq.partition:deleteEvent(e)
+    self.pad:button(row, col):setState('Off')
+    if e == self.event then
+      -- clear
+      self.event = nil
+      self.btn   = nil
+      self:display()
+    end
+    return
+  elseif self.del_on then
+    self.del_on = e.posid
+    self.pad:button(row, col):setState('Red')
+    return
   end
   self:editEvent(e, row, col)
 end
@@ -227,11 +249,7 @@ function lib:editEvent(e, row, col)
   -- turn off highlight current event
   if self.btn then
     -- current on button
-    if le.is_new then
-      self.btn:setState(EVENT_LIST[1])
-    else
-      self:setEventState(le)
-    end
+    self:setEventState(le)
   end
   self.btn = self.pad:button(row, col)
   self.pad:prepare()
@@ -257,7 +275,7 @@ end
 
 function lib:setEventState(e)
   local posid = e.posid
-  local row, col = posidToGrid(posid, self.page)
+  local row, col = posidToGrid(posid, self.page, 3)
   if not row then
     return
   end
@@ -272,18 +290,22 @@ function lib:setEventState(e)
 
   if e == self.event then
     b = b + 1
-  elseif e.mute then
+  elseif e.mute == 1 then
     b = 7
   end
   btn:setState(EVENT_LIST[b])
 end
 
-function private:copyEvent(row, col)
-  if self.copy_event then
-    self.copy_event = nil
+function private:copyDelEvent(row, col)
+  if self.copy_on then
+    self.copy_on = nil
+    self.del_on = true
+    self.copy_btn:setState('Red')
+  elseif self.del_on then
+    self.del_on = nil
     self.copy_btn:setState('Off')
   else
-    self.copy_event = self.event
+    self.copy_on = true
     local btn = self.copy_btn
     if not btn then
       btn = self.pad:button(row, col)
@@ -292,12 +314,17 @@ function private:copyEvent(row, col)
     btn:setState('Green')
   end
 end
-top_button[5] = private.copyEvent
+top_button[5] = private.copyDelEvent
 
-function private:loadBatch(row, col)
-  self.lseq:loadView('Batch')
+function private:loadPrevious(row, col)
+  local last = self.lseq.last_name
+  if last then
+    self.lseq:loadView(last)
+  else
+    self.lseq:loadView('Batch')
+  end
 end
-top_button[8] = private.loadBatch
+top_button[8] = private.loadPrevious
 
 
 for _, key in ipairs(PARAMS) do
@@ -325,7 +352,7 @@ function private:setParam(key, row, col, e, states)
     -- special operation
     if r == 'mute' then
       self.event = seq:setEvent(e.posid, {
-        mute = not e.mute
+        mute = e.mute == 1 and 0 or 1
       })
       -- reload event
       local posid = e.posid
@@ -362,7 +389,7 @@ function private:setParam(key, row, col, e, states)
   else
     b = 0
   end
-  if e.mute then
+  if e.mute == 1 then
     self.btns[key][row][col]:setState(states[b+4])
   else
     self.btns[key][row][col]:setState(states[b+1])
@@ -403,7 +430,7 @@ function private:loadParam(key, e, value, states, row)
     local b
     if type(r) == 'string' then
       if r == 'mute' then
-        b = e.mute and 3 or 0
+        b = e.mute == 1 and 3 or 0
       else
         -- ignore
         b = 0
@@ -422,7 +449,7 @@ function private:loadParam(key, e, value, states, row)
       b = 0
     end
     bits[i] = b
-    if e.mute then
+    if e.mute == 1 then
       b = b + 3
     end
     btns[i]:setState(states[b+1])

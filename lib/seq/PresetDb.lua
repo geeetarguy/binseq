@@ -102,6 +102,22 @@ function lib:setPartition(p)
   stmt:reset()
 end
 
+------------------------------------------------------------  COPY
+
+function lib:copyPartition(base, new_posid)
+  if self:hasPartition(new_posid) then
+    local p = self:getPartition(new_posid)
+    p:delete()
+  end
+  local p = self:createPartition(new_posid)
+  local partition_id = p.id
+  for _, e in ipairs(base.events_list) do
+    -- copy events
+    local ne = self:createEvent(e.posid, partition_id)
+    ne:set(e)
+  end
+end
+
 ------------------------------------------------------------  DELETE
 
 function lib:deletePartition(p)
@@ -244,6 +260,8 @@ function private:prepareDb(is_new)
   ------------------------------------------------------------  DELETE
   self.delete_partition = db:prepare [[
     DELETE FROM partitions WHERE id = :id;
+    DELETE FROM events WHERE partition_id = :id;
+    DELETE FROM presets_partitions WHERE partition_id = :id;
   ]]
 
   
@@ -252,7 +270,7 @@ function private:prepareDb(is_new)
   -- events table
   if is_new then
     db:exec [[
-      CREATE TABLE events (id INTEGER PRIMARY KEY, partition_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL);
+      CREATE TABLE events (id INTEGER PRIMARY KEY, partition_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, mute INTEGER);
       CREATE UNIQUE INDEX events_id_idx ON events(id);
       CREATE INDEX events_partition_id_idx ON events(partition_id);
     ]]
@@ -260,7 +278,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_event = db:prepare [[
-    INSERT INTO events VALUES (NULL, :partition_id, :posid, :note, :velocity, :length, :position, :loop);
+    INSERT INTO events VALUES (NULL, :partition_id, :posid, :note, :velocity, :length, :position, :loop, :mute);
   ]]
 
   ------------------------------------------------------------  READ
@@ -278,7 +296,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_event = db:prepare [[
-    UPDATE events SET partition_id = :partition_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop WHERE id = :id;
+    UPDATE events SET partition_id = :partition_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, mute = :mute WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
@@ -292,8 +310,7 @@ end
 --==========================================================  PRIVATE
 
 function private:eventFromRow(row)
-  return seq.Event {
-    db           = self,
+  local e = seq.Event {
     id           = row[1],
     partition_id = row[2],
     posid        = row[3],
@@ -302,6 +319,10 @@ function private:eventFromRow(row)
     length       = row[6],
     position     = row[7],
     loop         = row[8],
+    mute         = row[9],
   }
+  -- We only set db now so that 'set' does not save.
+  e.db = self
+  return e
 end
 

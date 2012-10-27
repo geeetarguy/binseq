@@ -16,7 +16,7 @@ end
 function should.setDefaultsOnCreate()
   local e = seq.Event()
   assertValueEqual({
-    mute     = true,
+    mute     = 1,
     loop     = 24,
     position = 0,
     velocity = 80,

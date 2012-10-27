@@ -111,6 +111,17 @@ function should.updateEvent()
   assertEqual(48, p.loop)
 end
 
+function should.storeMute()
+  local db = seq.PresetDb(':memory')
+  -- row, col, page, partition_id
+  local p1 = db:createEvent(5, 17)
+  -- auto save
+  p1:set {mute = 0}
+
+  local p2 = db:getEvent(5, 17)
+  assertEqual(0, p2.mute)
+end
+
 function should.deleteEvent()
   local db = seq.PresetDb(':memory')
   -- row, col, page

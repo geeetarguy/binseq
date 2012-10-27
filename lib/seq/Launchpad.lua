@@ -27,6 +27,10 @@ function lib.new()
     buttons = {},
     copy_bit = 4,
   }
+  self.finalizer = lk.Finalizer(function()
+    self:clear()
+  end)
+
   function self.lin.rawReceive(lin, a, b, c)
     self:receiveMidi(a, b, c)
   end
