@@ -49,21 +49,11 @@ function lib.new(def)
   return setmetatable(self, lib)
 end
 
-function lib:addEvent(id, e)
-  local events = self.events
-  local list = self.events_list
-  if events[id] then
-    -- remove from list
-    for i,e in ipairs(list) do
-      if e.id == id then
-        table.remove(list)
-        break
-      end
-    end
-  else
-    events[id] = e
-    table.insert(list, e)
-  end
+function lib:createEvent(posid)
+  local e = self.db:createEvent(posid, self.id)
+  table.insert(self.events_list, e)
+  self.events[posid] = e
+  return e
 end
 
 function lib:save()

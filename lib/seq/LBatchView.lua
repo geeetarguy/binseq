@@ -140,6 +140,7 @@ function lib:display(key, page)
   pad:commit()
 end
 
+-- mandatory function for view
 function lib:setEventState(e)
   local posid = e.posid
   local row = self.row_by_id[posid]
@@ -231,21 +232,6 @@ function private:pressGrid(row, col)
     private.setParam(self, self.key, row, col, e, BIT_STATE)
   end
   self.last_e = e
-end
-
--- Last column buttons
-function private:batchButton(row, col)
-  local key = PARAMS[row]
-  self:display(key)
-end
-for i, key in ipairs(PARAMS) do
-  if key ~= '' then
-    col_button[i] = private.batchButton
-  end
-end
-
-function lib:release(row, col)
-  -- ignore
 end
 
 -- Last column buttons

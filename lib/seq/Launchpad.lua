@@ -91,7 +91,10 @@ function lib:receiveMidi(a, b, c)
   local view = self.view
   if view then
     -- View acts as delegate for events.
-    view[key](view, row, col)
+    local f = view[key]
+    if f then
+      f(view, row, col)
+    end
   else
     local btn = self.buttons[btn_id]
     local f = btn and btn[key]

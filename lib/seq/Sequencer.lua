@@ -47,23 +47,21 @@ function lib:eventCount()
   return #self.partition.events_list
 end
 
-function lib:getEvent(id)
-  return self.partition.events[id]
+function lib:getEvent(posid)
+  return self.partition.events[posid]
 end
 
-function lib:setEvent(id, def)
-  local e = self:getEvent(id)
+function lib:setEvent(posid, def)
+  local e = self:getEvent(posid)
   local new_event = false
   if not e then
     new_event = true
-    e = seq.Event()
-    e.id = id
-    self.partition:addEvent(id, e)
+    e = self.partition:createEvent(posid)
   end
   if e:set(def) or new_event then
     private.schedule(self, e)
   end
-  self.partition:save(e)
+  e:save()
   return e
 end
 
@@ -71,19 +69,20 @@ end
 function lib:setGlobalLoop(m)
   self.partition.global_loop = m
   self.global_loop = m
-  self:buildActiveList(self.t)
+  self:buildActiveList()
 end
 
 -- The global start offset.
 function lib:setGlobalStart(s)
   self.partition.position = s
   self.global_start = s
-  self:buildActiveList(self.t)
+  self:buildActiveList()
 end
 
 -- Return a sorted linked list of active events given the current global
 -- start and global loop settings.
 function lib:buildActiveList(tc)
+  local tc = tc or self.t
   local list = self.list
   -- Clear list (we do not replace list because it can be stored in upvalues)
   local n = list.next

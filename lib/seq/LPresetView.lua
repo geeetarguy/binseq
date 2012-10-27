@@ -18,6 +18,8 @@ local col_button    = {}
 local top_button    = {}
 local private       = {}
 local m             = seq.LMainView.common
+local gridToPosid   = seq.Event.gridToPosid 
+local posidToGrid   = seq.Event.posidToGrid
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
@@ -108,9 +110,22 @@ function lib:press(row, col)
   end
 end
 
+function private:loadMain(row, col)
+  self.lseq:loadView('Main')
+end
+top_button[8] = private.loadMain
+
 function private:pressGrid(row, col)
+  local pad = self.pad
+  local seq = self.seq
   local posid = gridToPosid(row, col, self.page)
+  -- Unselect old
+  local cr, cc = posidToGrid(seq.partition.posid, self.page)
+
+  if cr then
+    pad:button(cr, cc):setState(PART_STATE[2])
+  end
   -- Change partition (creates new if needed)
   self.seq:selectPartition(posid)
-  self.pad:button(row, col):setState(PART_STATE[4])
+  pad:button(row, col):setState(PART_STATE[4])
 end

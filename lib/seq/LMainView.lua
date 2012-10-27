@@ -27,7 +27,6 @@ local grid_button   = {}
 -- Map top buttons
 local top_button    = {}
 -- Map row operation to function
-local release       = {}
 local private       = {}
 
 --=============================================== CONSTANTS
@@ -198,26 +197,6 @@ function lib:press(row, col)
     f(self, row, col)
   else
     self.lseq:press(row, col)
-  end
-end
-
-function lib:release(row, col)
-  local f = release[row]
-  if f then
-    f(self, row, col)
-  else
-    self.lseq:release(row, col)
-  end
-end
-
--- Last column buttons
-function private:batchButton(row, col)
-  local key = PARAMS[row]
-  self.lseq:loadView('Batch', key)
-end
-for i, key in ipairs(PARAMS) do
-  if key ~= '' then
-    col_button[i] = private.batchButton
   end
 end
 

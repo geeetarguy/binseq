@@ -10,6 +10,10 @@ local lib = {type = 'seq.LSeq'}
 lib.__index         = lib
 seq.LSeq            = lib
 local private       = {}
+local top_button    = {}
+local col_button    = {}
+local m             = seq.LMainView.common
+local PARAMS        = m.PARAMS
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -51,8 +55,34 @@ function lib:loadView(name, ...)
   self.pad:loadView(view, ...)
 end
 
+-- Last column buttons
+function private:batchButton(row, col)
+  local key = PARAMS[row]
+  self:loadView('Batch', key)
+end
+for i, key in ipairs(PARAMS) do
+  if key ~= '' then
+    col_button[i] = private.batchButton
+  end
+end
+
+function private:presetButton(row, col)
+  self:loadView('Preset')
+end
+top_button[6] = private.presetButton
+
 -- Default actions when not implemented in view.
 function lib:press(row, col)
+  print('LSeq', row, col)
+  local f
+  if row == 0 then
+    f = top_button[col]
+  elseif col == 9 then
+    f = col_button[row]
+  end
+  if f then
+    f(self, row, col)
+  end
 end
 
 -- Default actions when not implemented in view.

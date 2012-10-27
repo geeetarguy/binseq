@@ -72,6 +72,10 @@ function lib:set(def)
     end
   end
 
+  if self.db then
+    self:save()
+  end
+
   return need_schedule
 end
 
