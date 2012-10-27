@@ -296,6 +296,12 @@ function lib:setEventState(e)
   btn:setState(EVENT_LIST[b])
 end
 
+function lib:eventChanged(e)
+  if e == self.event then
+    self.editEvent(e)
+  end
+end
+
 function private:copyDelEvent(row, col)
   if self.copy_on then
     self.copy_on = nil
@@ -458,9 +464,10 @@ end
 
 -- Share some private stuff with LBatchView and LPresetView
 lib.common = {
-  loadParam = private.loadParam,
-  setParam  = private.setParam,
-  PARAMS    = PARAMS,
-  BIT_STATE = BIT_STATE,
+  loadParam  = private.loadParam,
+  setParam   = private.setParam,
+  PARAMS     = PARAMS,
+  BIT_STATE  = BIT_STATE,
+  EVENT_LIST = EVENT_LIST,
 }
 

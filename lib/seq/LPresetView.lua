@@ -40,7 +40,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LMainView(...)
+-- seq.LPresetView(...)
 function lib.new(lseq)
   local self = {
     lseq = lseq,

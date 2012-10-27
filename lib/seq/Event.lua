@@ -183,4 +183,5 @@ function lib:delete()
   local db = self.db
   assert(db, 'Cannot delete event without database')
   db:deleteEvent(self)
+  self.deleted = true
 end

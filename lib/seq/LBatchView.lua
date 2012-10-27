@@ -171,6 +171,8 @@ function lib:editEvent(e)
     private.loadParam(self, self.key, e, e[self.key], BIT_STATE, row)
   end
 end
+lib.eventChanged = lib.editEvent
+
 
 function lib:press(row, col)
   if row == 0 then
@@ -205,7 +207,7 @@ function private:changePage(row, col)
   end
   self:display(self.key, p)
 end
-for i=1,4 do
+for i=1,3 do
   top_button[i] = private.changePage
 end
 

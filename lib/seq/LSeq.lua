@@ -83,6 +83,15 @@ function private:presetButton(row, col)
 end
 top_button[6] = private.presetButton
 
+function private:recButton(row, col)
+  self:loadView('Rec')
+end
+top_button[4] = private.recButton
+
+-- function private:recButton(row, col)
+--   self:loadView('Rec')
+-- end
+-- top_button[8] = private.mainButton
 -- Default actions when not implemented in view.
 function lib:press(row, col)
   local f
@@ -98,4 +107,11 @@ end
 
 -- Default actions when not implemented in view.
 function lib:release(row, col)
+end
+
+function lib:record(msg)
+  local rec = self.views['Rec']
+  if rec then
+    rec:record(msg)
+  end
 end
