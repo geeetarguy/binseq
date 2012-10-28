@@ -1,0 +1,9 @@
+global settings are saved with the preset along with channel selection
+Preset -> sequencers -> global settings (not stored in pattern) + selected pattern
+       -> patterns ?
+64 preset
+       -> 64 patterns
+can select pattern from another preset ?
+banks ?
+For now just store patterns globally and see if this is OK or we need some kind
+of "do not mess with my settings" stuff assigned to each preset.

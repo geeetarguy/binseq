@@ -130,11 +130,11 @@ setmetatable(lib, {
 })
 
 -- seq.LMainView(...)
-function lib.new(lseq)
+function lib.new(lseq, seq)
   local self = {
     lseq = lseq,
     pad = lseq.pad,
-    seq = lseq.seq,
+    seq = seq,
     -- direct access to buttons (ex: btns.position[col])
     btns = {},
     -- direct access to bit values (ex: bits.position[col])
@@ -170,6 +170,9 @@ function lib:display()
       end
     end
   end
+
+  self.lseq:showSeqButtons()
+  -- editEvent also does a prepare/commit so we must commit before
   pad:commit()
 
   local e = event

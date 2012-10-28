@@ -38,12 +38,19 @@ end
 
 function lib:selectPartition(posid)
   private.allOff(self)
+  if not posid then
+    -- turn off
+    self.partition = nil
+    self.list.next = nil
+    return
+  end
+
   local part = self.db:getPartition(posid)
   if not part then
     part = self.db:createPartition(posid)
   end
   self.partition = part
-  self.global_loop = part.loop > 0 and part.loop
+  self.global_loop  = part.loop > 0 and part.loop
   self.global_start = part.position
   self:buildActiveList()
 end
@@ -88,20 +95,16 @@ end
 -- start and global loop settings.
 function lib:buildActiveList(tc)
   local tc = tc or self.t
+  -- Clear list
+  self.list = {}
   local list = self.list
-  -- Clear list (we do not replace list because it can be stored in upvalues)
-  local n = list.next
-  if n then
-    n.prev = nil
-  end
-  list.next = nil
 
   local Gs = self.global_start
   local Gm = self.global_loop
   for _, e in ipairs(self.partition.events) do
     -- This sets e.t
     e:nextTrigger(tc, Gs, Gm)
-    private.insertInList(self, list, e)
+    private.insertInList(list, e)
     if seq_debug then
       local l = list.next
       while l do
@@ -177,10 +180,10 @@ end
 
 function private:schedule(e, not_now)
   e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
-  private.insertInList(self, self.list, e)
+  private.insertInList(self.list, e)
 end
 
-function private.insertInList(self, list, e)
+function private.insertInList(list, e)
   -- Remove from previous list
   local p = e.prev
   local n = e.next
@@ -222,15 +225,12 @@ function private.insertInList(self, list, e)
         l = n
       end
     end
-
-    if self.playing and not self.thread then
-      private.startThread(self)
-    end
   end
 end
 
 function private:allOff()
   local e = self.list.next
+  self.list.next = nil
   while e do
     local ne = e.next
     e.prev = nil

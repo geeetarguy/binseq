@@ -41,11 +41,11 @@ setmetatable(lib, {
 })
 
 -- seq.LPresetView(...)
-function lib.new(lseq)
+function lib.new(lseq, seq)
   local self = {
     lseq = lseq,
     pad = lseq.pad,
-    seq = lseq.seq,
+    seq = seq,
     -- default pagination
     page = 0,
     -- partitions by posid (only exist / does not exist)
@@ -91,6 +91,7 @@ function lib:display()
       end
     end
   end
+  self.lseq:showSeqButtons()
   pad:commit()
 end
 
@@ -159,6 +160,7 @@ function private:pressGrid(row, col)
   elseif self.del_on == posid then
     -- delete
     local p = seq.db:getPartition(posid)
+    -- FIXME: preset views in other sequencers should be notified
     p:delete()
     self.del_on = nil
     self.pad:button(0, 5):setState('Off')
@@ -179,8 +181,16 @@ function private:pressGrid(row, col)
     return
   end
 
-  -- Change partition (creates new if needed)
-  self.seq:selectPartition(posid)
-  self.partitions[posid] = true
-  pad:button(row, col):setState(PART_STATE[4])
+  local cposid = (self.seq.partition or {}).posid
+  if cposid == posid then
+    -- turn off
+    self.seq:selectPartition(nil)
+    self.partitions[posid] = false
+    pad:button(row, col):setState(PART_STATE[2])
+  else
+    -- Change partition (creates new if needed)
+    self.seq:selectPartition(posid)
+    self.partitions[posid] = true
+    pad:button(row, col):setState(PART_STATE[4])
+  end
 end

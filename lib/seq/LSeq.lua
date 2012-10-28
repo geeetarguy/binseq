@@ -15,6 +15,9 @@ local col_button    = {}
 local m             = seq.LMainView.common
 local PARAMS        = m.PARAMS
 
+--=============================================== CONSTANTS
+local SEQ_BITS = {4, 2, 1}
+
 --=============================================== PUBLIC
 setmetatable(lib, {
   __call = function(lib, ...)
@@ -23,48 +26,141 @@ setmetatable(lib, {
 })
 
 -- seq.LSeq(...)
-function lib.new(sequencer, db_path)
+function lib.new(name, db_path)
   local self = {
+    name = name,
     pad = seq.Launchpad(),
-    seq = sequencer,
     views = {},
+    sequencers = {},
+    seq_list   = {},
+    -- buttons on the right
+    seq_bits = {},
+    selected_id  = 1,
+
+    selected_seq = nil,
   }
-  local trigger = self.seq.trigger
-  function sequencer.trigger(sequencer, e)
-    trigger(sequencer, e)
-    local view = self.view
-    local f = view.setEventState
-    if f then
-      f(view, e)
-    end
-  end
   setmetatable(self, lib)
-  self:loadView('Preset')
+  private.setupMidi(self)
+  self:selectSequencer(1)
   return self
 end
 
+
+function lib:selectSequencer(nb)
+  -- current view
+  local aseq = self.selected_seq
+  local view_name = 'Preset'
+  local view_key
+  if aseq then
+    -- keep same view
+    view_name = aseq.view.name
+    view_key = aseq.view.key
+    if not aseq.partition then
+      -- unstarted sequencer, remove
+      for i, s in ipairs(self.seq_list) do
+        if s == aseq then
+          table.remove(self.seq_list, i)
+          break
+        end
+      end
+      self.sequencers[self.selected_id] = nil
+    end
+  end
+
+  local aseq = self.sequencers[nb]
+  if not aseq then
+    view_name = 'Preset'
+    aseq = seq.Sequencer()
+    aseq.channel = nb
+    aseq.views = {}
+    self.sequencers[nb] = aseq
+    table.insert(self.seq_list, aseq)
+    -- Share client callback with all sequencers.
+    aseq.playback = self.playback
+
+    -- Change trigger so that we are also notified.
+    local trigger = aseq.trigger
+    function aseq.trigger(aseq, e)
+      -- Normal sequencer trigger function
+      trigger(aseq, e)
+
+      -- Our notification to show highlighted notes
+      if self.selected_seq == aseq then
+        local view = aseq.view
+        local f = view.setEventState
+        if f then
+          f(view, e)
+        end
+      end
+    end
+  end
+
+  self.selected_id  = nb
+  self.selected_seq = aseq
+  self:loadView(view_name, view_key)
+end
+
+function lib:showSeqButtons()
+  -- Highlight bits
+  local nb = self.selected_id - 1
+  local bits = self.seq_bits
+  for i, r in ipairs(SEQ_BITS) do
+    local b = math.floor(nb/r)
+    if b > 0 then
+      self.pad:button(i, 9):setState('Green')
+    else
+      self.pad:button(i, 9):setState('LightRed')
+    end
+    bits[i] = b
+    nb = nb - r * b
+  end
+end
+
 function lib:loadView(name, ...)
-  if name ~= 'Preset' and not self.seq.partition then
+  local aseq = self.selected_seq
+
+  if name ~= 'Preset' and not aseq.partition then
     return -- refuse to leave preset page
   end
 
-  if self.view then
-    self.last_name = self.view.name
+
+  if aseq.view then
+    aseq.last_name = aseq.view.name
   end
 
-  local view = self.views[name]
+  local view = aseq.views[name]
   if not view then
     local t = seq['L'..name..'View']
     if t then
-      view = t(self)
-      self.views[name] = view
+      view = t(self, aseq)
+      aseq.views[name] = view
     else
       error('Could not find seq.L'..name..'View view')
     end
   end
 
-  self.view = view
+  aseq.view = view
   self.pad:loadView(view, ...)
+end
+
+function lib:trigger(t)
+  for _, aseq in ipairs(self.seq_list) do
+    aseq.t = t
+    list = aseq.list
+    local e = list.next
+    while e and e.t <= t do
+      aseq:trigger(e)
+      e = list.next
+    end
+  end
+end
+
+function lib:reScheduleAll(t)
+  for _, aseq in ipairs(self.seq_list) do
+    if aseq.partition then
+      aseq:buildActiveList(t)
+    end
+  end
 end
 
 -- Last column buttons
@@ -87,6 +183,22 @@ function private:recButton(row, col)
   self:loadView('Rec')
 end
 top_button[4] = private.recButton
+
+function private:seqButton(row, col)
+  local nb = self.selected_id - 1
+  local bits = self.seq_bits
+
+  if bits[row] == 1 then
+    nb = nb - SEQ_BITS[row]
+  else
+    nb = nb + SEQ_BITS[row]
+  end
+
+  self:selectSequencer(nb + 1)
+end
+col_button[1] = private.seqButton
+col_button[2] = private.seqButton
+col_button[3] = private.seqButton
 
 -- function private:recButton(row, col)
 --   self:loadView('Rec')
@@ -113,5 +225,55 @@ function lib:record(msg)
   local rec = self.views['Rec']
   if rec then
     rec:record(msg)
+  end
+end
+
+function private:setupMidi()
+  local midiout = midi.Out()
+  midiout:virtualPort(self.name)
+
+  self.midiout = midiout
+  function self.playback(aseq, e)
+    -- Playback function
+    -- Important to trigger so that NoteOff is registered.
+    midiout:send(e:trigger(aseq.channel))
+  end
+
+  local midiin = midi.In()
+  midiin:virtualPort(self.name)
+  -- do not ignore midi sync
+  midiin:ignoreTypes(true, false, true)
+  self.midiin = midiin
+
+
+  --============================ midi in hook
+  local t = 0
+  local running = false
+  function midiin.receive(midiin, msg)
+    if msg.type == 'Clock' then
+      local op = msg.op
+      if running and op == 'Tick' then
+
+        self:trigger(t)
+        -- Prepare time for next run in case events are re-scheduled or 
+        -- created.
+        t = t + 1
+      elseif op == 'Continue' and not running then
+        -- Next tick = t
+        running = true
+      elseif op == 'Start' and not running then
+        -- Next tick = beat 0
+        t = 0
+        self:reScheduleAll(t)
+        running = true
+      elseif op == 'Stop' and running then
+        running = false
+      elseif op == 'Song' then
+        t = msg.position
+        self:reScheduleAll(t)
+      end
+    else
+      ls:record(msg)
+    end
   end
 end

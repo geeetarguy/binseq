@@ -34,11 +34,11 @@ setmetatable(lib, {
 })
 
 -- seq.LRecView(...)
-function lib.new(lseq)
+function lib.new(lseq, seq)
   local self = {
     lseq = lseq,
     pad = lseq.pad,
-    seq = lseq.seq,
+    seq = seq,
     -- default pagination
     page = 0,
     -- events to record (order as added)
@@ -94,6 +94,7 @@ function lib:display()
       self.pad:button(i, 9):setState('Off')
     end
   end
+  self.lseq:showSeqButtons()
   pad:commit()
 end
 

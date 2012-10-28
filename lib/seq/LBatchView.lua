@@ -82,11 +82,11 @@ setmetatable(lib, {
 })
 
 -- seq.LBatchView(...)
-function lib.new(lseq)
+function lib.new(lseq, seq)
   local self = {
     lseq = lseq,
     pad = lseq.pad,
-    seq = lseq.seq,
+    seq = seq,
     key = 'note',
     -- Direct access to bit values (ex: bits[row][col])
     bits = {},
@@ -137,6 +137,7 @@ function lib:display(key, page)
     end
   end
   pad:button(KEY_TO_ROW[key], 9):setState('Amber')
+  self.lseq:showSeqButtons()
   pad:commit()
 end
 
