@@ -40,7 +40,7 @@ function lib.new(path)
   return self
 end
 
---==========================================================  PARTITIONS
+--==========================================================  PATTERNS
 
 ------------------------------------------------------------  CREATE
 function lib:createPattern(posid)
@@ -216,31 +216,105 @@ end
 function private:prepareDb(is_new)
   local db = self.db
 
-  -- preset (which pattern on which channel)
-
-  if is_new then
-    db:exec [[
-      CREATE TABLE presets (id INTEGER PRIMARY KEY);
-      CREATE UNIQUE INDEX presets_id_idx ON patterns(id);
-      CREATE TABLE presets_patterns (preset_id INTEGER, pattern_id INTEGER);
-      CREATE INDEX presets_patterns_preset_id_idx ON presets_patterns(preset_id);
-      CREATE INDEX presets_patterns_pattern_id_idx ON presets_patterns(pattern_id);
-    ]]
-  end
-
-
-  --==========================================================  PARTITIONS
+  --==========================================================  Song
   -- note, velocity, length, position, loop are global settings
   if is_new then
     db:exec [[
-      CREATE TABLE patterns (id INTEGER PRIMARY KEY, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL);
-      CREATE UNIQUE INDEX patterns_id_idx ON patterns(id);
+      CREATE TABLE songs (id INTEGER PRIMARY KEY, posid INTEGER, name TEXT, created_at TEXT);
+      CREATE UNIQUE INDEX songs_idx ON songs(id);
+      CREATE UNIQUE INDEX songs_posidx ON songs(posid);
+
+      CREATE TABLE songs_sequencers (song_id INTEGER, sequencer_id INTEGER);
+      CREATE INDEX songs_sequencers_song_idx ON songs_sequencers(song_id);
+      CREATE INDEX songs_sequencers_sequencer_idx ON songs_sequencers(sequencer_id);
+    ]]
+  end
+
+  ------------------------------------------------------------  CREATE
+  self.create_song = db:prepare [[
+    INSERT INTO songs VALUES (NULL, :posid, :name, :created_at);
+  ]]
+
+  ------------------------------------------------------------  READ
+  self.read_song = db:prepare [[
+    SELECT * FROM songs WHERE id = :id;
+  ]]
+
+  self.read_song = db:prepare [[
+    SELECT * FROM songs WHERE posid = :posid;
+  ]]
+
+  ------------------------------------------------------------  UPDATE
+  self.update_song = db:prepare [[
+    UPDATE songs SET posid = :posid, name = :name, created_at = :created_at WHERE id = :id;
+  ]]
+
+  ------------------------------------------------------------  DELETE
+  -- TODO
+  -- self.delete_song = db:prepare [[
+  --   DELETE FROM songs WHERE id = :id;
+  --   DELETE FROM events WHERE pattern_id = :id;
+  --   DELETE FROM presets_song WHERE pattern_id = :id;
+  -- ]]
+
+  
+  --==========================================================  Sequencer
+  -- note, velocity, length, position, loop are global settings
+  -- * list of active patterns
+  -- * global settings
+  --   => note, velocity, length, position, loop
+  --   => channel, mute, pattern mode (single, multiple, latch)
+  if is_new then
+    db:exec [[
+      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, channel INTEGER);
+      CREATE UNIQUE INDEX sequencers_idx ON sequencers(id);
+      CREATE UNIQUE INDEX sequencers_posidx ON sequencers(id);
+
+      CREATE TABLE sequencers_patterns (sequencer_id INTEGER, pattern_id INTEGER);
+      CREATE INDEX sequencers_patterns_sequencer_idx ON sequencers_patterns(sequencer_id);
+      CREATE INDEX sequencers_patterns_pattern_idx ON sequencers_patterns(pattern_id);
+    ]]
+  end
+
+  ------------------------------------------------------------  CREATE
+  self.create_sequencer = db:prepare [[
+    INSERT INTO sequencers VALUES (NULL, :posid, :note, :velocity, :length, :position, :loop, :channel);
+  ]]
+
+  ------------------------------------------------------------  READ
+  self.read_sequencer_by_id = db:prepare [[
+    SELECT * FROM sequencers WHERE id = :id;
+  ]]
+
+  self.read_sequencer_by_posid = db:prepare [[
+    SELECT * FROM sequencers WHERE posid = :posid;
+  ]]
+
+  ------------------------------------------------------------  UPDATE
+  self.update_sequencer = db:prepare [[
+    UPDATE sequencers SET posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, channel = :channel WHERE id = :id;
+  ]]
+
+  ------------------------------------------------------------  DELETE
+  self.delete_sequencer = db:prepare [[
+    DELETE FROM sequencers WHERE id = :id;
+    DELETE FROM songs_sequencers    WHERE sequencer_id = :id;
+    DELETE FROM sequencers_patterns WHERE sequencer_id = :id;
+  ]]
+  
+  --==========================================================  Pattern
+  if is_new then
+    db:exec [[
+      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER);
+      CREATE UNIQUE INDEX patterns_idx    ON patterns(id);
+      CREATE INDEX patterns_song_idx      ON patterns(song_id);
+      CREATE UNIQUE INDEX patterns_posidx ON patterns(posid);
     ]]
   end
 
   ------------------------------------------------------------  CREATE
   self.create_pattern = db:prepare [[
-    INSERT INTO patterns VALUES (NULL, :posid, :note, :velocity, :length, :position, :loop);
+    INSERT INTO patterns VALUES (NULL, :song_id, :posid);
   ]]
 
   ------------------------------------------------------------  READ
@@ -252,18 +326,21 @@ function private:prepareDb(is_new)
     SELECT * FROM patterns WHERE posid = :posid;
   ]]
 
+  self.read_pattern_by_song_id = db:prepare [[
+    SELECT * FROM patterns WHERE song_id = :song_id;
+  ]]
+
   ------------------------------------------------------------  UPDATE
   self.update_pattern = db:prepare [[
-    UPDATE patterns SET posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop WHERE id = :id;
+    UPDATE patterns SET song_id = :song_id, posid = :posid WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
   self.delete_pattern = db:prepare [[
     DELETE FROM patterns WHERE id = :id;
     DELETE FROM events WHERE pattern_id = :id;
-    DELETE FROM presets_patterns WHERE pattern_id = :id;
+    DELETE FROM sequencers_patterns WHERE pattern_id = :id;
   ]]
-
   
   --==========================================================  EVENTS
 
@@ -271,8 +348,9 @@ function private:prepareDb(is_new)
   if is_new then
     db:exec [[
       CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, mute INTEGER);
-      CREATE UNIQUE INDEX events_id_idx ON events(id);
-      CREATE INDEX events_pattern_id_idx ON events(pattern_id);
+      CREATE UNIQUE INDEX events_idx ON events(id);
+      CREATE INDEX events_pattern_posidx ON events(pattern_id, posid);
+      CREATE INDEX events_pattern_idx ON events(pattern_id);
     ]]
   end
 
@@ -304,7 +382,6 @@ function private:prepareDb(is_new)
     DELETE FROM events WHERE id = :id;
   ]]
 end
-
 
 
 --==========================================================  PRIVATE

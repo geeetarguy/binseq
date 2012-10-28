@@ -13,5 +13,9 @@ function should.autoLoad()
   assertType('table', e)
 end
 
+function should.createPattern()
+  local s
+end
+
 test.all()
 

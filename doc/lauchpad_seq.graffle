@@ -1197,7 +1197,7 @@
 				<key>stroke</key>
 				<dict>
 					<key>HeadArrow</key>
-					<string>Bar</string>
+					<string>BarBall</string>
 					<key>Legacy</key>
 					<true/>
 					<key>LineType</key>
@@ -7155,8 +7155,8 @@ parameters}</string>
 			<integer>376</integer>
 			<key>Points</key>
 			<array>
-				<string>{147.61143119991095, 826}</string>
-				<string>{222.5198647460569, 721}</string>
+				<string>{147.61144664393925, 826}</string>
+				<string>{222.51999602029767, 721}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -7225,8 +7225,8 @@ parameters}</string>
 			<integer>366</integer>
 			<key>Points</key>
 			<array>
-				<string>{103.80032363083542, 760}</string>
-				<string>{190.68748733186209, 721}</string>
+				<string>{103.80527296862481, 760}</string>
+				<string>{190.70622411063616, 721}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -7260,8 +7260,8 @@ parameters}</string>
 			<integer>361</integer>
 			<key>Points</key>
 			<array>
-				<string>{118.61005973815918, 699.96783264334761}</string>
-				<string>{181.99765777587891, 699.92350630696887}</string>
+				<string>{118.61005973815918, 699.99368492589065}</string>
+				<string>{181.99765777587891, 699.98498280895092}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -7384,7 +7384,7 @@ parameters}</string>
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2012-10-28 17:17:00 +0000</string>
+	<string>2012-10-28 20:31:34 +0000</string>
 	<key>Modifier</key>
 	<string>Gaspard Bucher</string>
 	<key>NotesVisible</key>
@@ -7463,14 +7463,9 @@ parameters}</string>
 		<key>CurrentSheet</key>
 		<integer>0</integer>
 		<key>ExpandedCanvases</key>
-		<array>
-			<dict>
-				<key>name</key>
-				<string>Canvas 1</string>
-			</dict>
-		</array>
+		<array/>
 		<key>Frame</key>
-		<string>{{184, 4}, {1040, 1024}}</string>
+		<string>{{179, -12}, {1040, 1024}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -7484,7 +7479,7 @@ parameters}</string>
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{-50, 17}, {905, 885}}</string>
+		<string>{{-50, 0}, {905, 885}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>

@@ -7,7 +7,10 @@
     * list of events
 
   The pattern responds to
-    * ???
+    * enable (adds itself to the sequencer)
+    * disable (removes itself from the sequencer)
+    * setSequencer (when assigned to a different sequencer)
+
 
 --]]------------------------------------------------------
 local lib = {type = 'seq.Pattern'}
@@ -23,21 +26,20 @@ setmetatable(lib, {
 })
 
 -- seq.Pattern(...)
-function lib.new(def)
-  local self = def or {
-  }
+function lib.new(song, sequencer)
+  local self = {}
 
   -- Find event by event posid
   self.events      = {}
   -- List of all events (unsorted)
   self.events_list = {}
 
-  if self.db then
+  if song then
     -- load events
     local events = self.events
     local list = self.events_list
 
-    for e in self.db:getEvents(self.id) do
+    for e in song.db:getEvents(self.id) do
       events[e.posid] = e
       table.insert(list, e)
     end
