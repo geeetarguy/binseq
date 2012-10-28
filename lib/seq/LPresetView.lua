@@ -48,17 +48,17 @@ function lib.new(lseq, seq)
     seq = seq,
     -- default pagination
     page = 0,
-    -- partitions by posid (only exist / does not exist)
-    partitions = {},
+    -- patterns by posid (only exist / does not exist)
+    patterns = {},
   }
 
   -- load parts info
   local db = self.seq.db
-  local partitions = self.partitions
+  local patterns = self.patterns
   for row=1,8 do
     for col=1,8 do
       local posid = gridToPosid(row, col, self.page)
-      partitions[posid] = db:hasPartition(posid)
+      patterns[posid] = db:hasPattern(posid)
     end
   end
 
@@ -69,13 +69,13 @@ end
 function lib:display()
   local pad = self.pad
   local seq = self.seq
-  local parts = self.partitions
-  local curr = (seq.partition or {}).posid
+  local parts = self.patterns
+  local curr = (seq.pattern or {}).posid
   local page = self.page
   -- Clear
   pad:prepare()
   pad:clear()
-  -- Display partitions
+  -- Display patterns
   -- Turn on global button
   pad:button(0, 6):setState('Green')
 
@@ -139,7 +139,7 @@ function private:pressGrid(row, col)
   local seq = self.seq
   local posid = gridToPosid(row, col, self.page)
   -- Unselect old
-  local curr = (seq.partition or {}).posid
+  local curr = (seq.pattern or {}).posid
   if curr then
     local cr, cc = posidToGrid(curr, self.page)
 
@@ -149,9 +149,9 @@ function private:pressGrid(row, col)
   end
 
   if self.copy_on then
-    if posid ~= seq.partition.posid then
-      -- copy current partition to given location
-      seq.db:copyPartition(seq.partition, posid)
+    if posid ~= seq.pattern.posid then
+      -- copy current pattern to given location
+      seq.db:copyPattern(seq.pattern, posid)
     end
     self.copy_on = false
     pad:button(0, 5):setState('Off')
@@ -159,38 +159,38 @@ function private:pressGrid(row, col)
     return
   elseif self.del_on == posid then
     -- delete
-    local p = seq.db:getPartition(posid)
+    local p = seq.db:getPattern(posid)
     -- FIXME: preset views in other sequencers should be notified
     p:delete()
     self.del_on = nil
     self.pad:button(0, 5):setState('Off')
-    self.partitions[p.posid] = nil
-    if p.posid ~= (self.seq.partition or {}).posid then
+    self.patterns[p.posid] = nil
+    if p.posid ~= (self.seq.pattern or {}).posid then
       pad:button(row, col):setState(PART_STATE[1])
     else
       pad:button(row, col):setState(PART_STATE[1])
-      self.seq:selectPartition(1)
-      self.partitions[1] = true
+      self.seq:selectPattern(1)
+      self.patterns[1] = true
     end
     return
   elseif self.del_on then
-    if seq.db:hasPartition(posid) then
+    if seq.db:hasPattern(posid) then
       self.del_on = posid
       pad:button(row, col):setState(PART_STATE[5])
     end
     return
   end
 
-  local cposid = (self.seq.partition or {}).posid
+  local cposid = (self.seq.pattern or {}).posid
   if cposid == posid then
     -- turn off
-    self.seq:selectPartition(nil)
-    self.partitions[posid] = false
+    self.seq:selectPattern(nil)
+    self.patterns[posid] = false
     pad:button(row, col):setState(PART_STATE[2])
   else
-    -- Change partition (creates new if needed)
-    self.seq:selectPartition(posid)
-    self.partitions[posid] = true
+    -- Change pattern (creates new if needed)
+    self.seq:selectPattern(posid)
+    self.patterns[posid] = true
     pad:button(row, col):setState(PART_STATE[4])
   end
 end

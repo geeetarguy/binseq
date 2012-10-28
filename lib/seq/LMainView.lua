@@ -159,7 +159,7 @@ function lib:display()
   -- Turn on mixer button
   pad:button(0, 8):setState('Green')
 
-  local events = seq.partition.events
+  local events = seq.pattern.events
 
   for row=1,3 do
     for col=1,8 do
@@ -209,7 +209,7 @@ function lib:selectNote(row, col)
   local posid = gridToPosid(row, col, self.page)
   local e = self.seq:getEvent(posid)
   if not e then
-    e = self.seq.partition:createEvent(posid)
+    e = self.seq.pattern:createEvent(posid)
   end
   if self.copy_on then
     if self.event then
@@ -225,7 +225,7 @@ function lib:selectNote(row, col)
     self.del_on = false
     self.pad:button(0, 5):setState('Off')
 
-    self.seq.partition:deleteEvent(e)
+    self.seq.pattern:deleteEvent(e)
     self.pad:button(row, col):setState('Off')
     if e == self.event then
       -- clear

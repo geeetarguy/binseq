@@ -3,7 +3,20 @@
   seq.Sequencer
   -------------
 
-  MIDI Sequencer.
+  A Sequencer contains:
+    * list of active patterns
+    * global settings
+      => note, velocity, length, position, loop
+      => channel, mute, pattern mode (single, multiple, latch)
+
+  The sequencer responds to
+    * play(t): trigger events for all active patterns
+      (one list contains all future events for active
+       patterns)
+    * addPattern(pattern)
+    * removePattern(posid)
+    * allOff: called to mute all current ON notes.
+    * move(t): must be called to move song position.
 
 --]]------------------------------------------------------
 local lib = {type = 'seq.Sequencer'}
@@ -19,81 +32,76 @@ setmetatable(lib, {
 })
 
 -- seq.Sequencer(...)
-function lib.new(db_path)
-  local db_path = db_path or os.getenv('HOME') .. '/Documents/seq.db'
+function lib.new(song)
   local self = {
-    db  = seq.PresetDb(db_path),
-    t = 0,
+    song = song,
+    t    = 0,
+    -- Playback list
     list = {},
-    global_loop_value = 24,
+    -- Active patterns
+    patterns = {},
+    -- Global alterations
+    note     = 0,
+    velocity = 0,
+    length   = 0,
+    position = 0,
+    loop     = 0,
   }
   setmetatable(self, lib)
   
   self.destroy = lk.Finalizer(function()
-    private.allOff(self)
+    self:allOff()
   end)
 
   return self
 end
 
-function lib:selectPartition(posid)
+function lib:addPattern(pat)
+  local pat = self.db:getPattern(posid)
+function lib:selectPattern(posid)
   private.allOff(self)
   if not posid then
     -- turn off
-    self.partition = nil
+    self.pattern = nil
     self.list.next = nil
     return
   end
 
-  local part = self.db:getPartition(posid)
+  local part = self.db:getPattern(posid)
   if not part then
-    part = self.db:createPartition(posid)
+    part = self.db:createPattern(posid)
   end
-  self.partition = part
+  self.pattern = part
   self.global_loop  = part.loop > 0 and part.loop
   self.global_start = part.position
-  self:buildActiveList()
+  self:scheduleAll()
 end
 
 function lib:eventCount()
-  return #self.partition.events_list
+  return #self.pattern.events_list
 end
 
 function lib:getEvent(posid)
-  return self.partition.events[posid]
-end
-
-function lib:setEvent(posid, def)
-  local e = self:getEvent(posid)
-  local new_event = false
-  if not e then
-    new_event = true
-    e = self.partition:createEvent(posid)
-  end
-  if e:set(def) or new_event then
-    private.schedule(self, e)
-  end
-  e:save()
-  return e
+  return self.pattern.events[posid]
 end
 
 -- The global loop setting overrides individual event loops.
 function lib:setGlobalLoop(m)
-  self.partition.global_loop = m
+  self.pattern.global_loop = m
   self.global_loop = m
-  self:buildActiveList()
+  self:scheduleAll()
 end
 
 -- The global start offset.
 function lib:setGlobalStart(s)
-  self.partition.position = s
+  self.pattern.position = s
   self.global_start = s
-  self:buildActiveList()
+  self:scheduleAll()
 end
 
 -- Return a sorted linked list of active events given the current global
 -- start and global loop settings.
-function lib:buildActiveList(tc)
+function lib:scheduleAll(tc)
   local tc = tc or self.t
   -- Clear list
   self.list = {}
@@ -101,7 +109,7 @@ function lib:buildActiveList(tc)
 
   local Gs = self.global_start
   local Gm = self.global_loop
-  for _, e in ipairs(self.partition.events) do
+  for _, e in ipairs(self.pattern.events) do
     -- This sets e.t
     e:nextTrigger(tc, Gs, Gm)
     private.insertInList(list, e)
@@ -146,7 +154,7 @@ function lib:play(bpm)
     -- sequencer start in ms
     self.start_ms = now()
     self.playing = true
-    self:buildActiveList()
+    self:scheduleAll()
     private.startThread(self)
   end
 end
@@ -228,7 +236,7 @@ function private.insertInList(list, e)
   end
 end
 
-function private:allOff()
+function lib:allOff()
   local e = self.list.next
   self.list.next = nil
   while e do

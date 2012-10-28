@@ -3,11 +3,11 @@
   seq.Event
   ---------
 
-  A partition is made of many events. An event contains
+  A pattern is made of many events. An event contains
   the following information:
 
     * type (note, ctrl, etc). Only notes for the moment.
-    * position (position in partition in midi clock values)
+    * position (position in pattern in midi clock values)
     * note (note value in midi)
     * loop (loop length for this event)
     * length (note duration)

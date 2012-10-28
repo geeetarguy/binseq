@@ -54,16 +54,16 @@ end
 
 function should.setGlobalLoop()
   local s = seq.Sequencer(':memory')
-  assertEqual(nil, s.partition.global_loop)
+  assertEqual(nil, s.pattern.global_loop)
   s:setGlobalLoop(48)
-  assertEqual(48, s.partition.global_loop)
+  assertEqual(48, s.pattern.global_loop)
 end
 
 function should.setGlobalStart()
   local s = seq.Sequencer(':memory')
-  assertEqual(0, s.partition.position)
+  assertEqual(0, s.pattern.position)
   s:setGlobalStart(48)
-  assertEqual(48, s.partition.position)
+  assertEqual(48, s.pattern.position)
 end
 
 function should.buildActiveList()

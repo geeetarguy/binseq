@@ -123,7 +123,7 @@ function lib:display(key, page)
   local row_by_id = {}
   self.row_by_id = row_by_id
 
-  local part_events = seq.partition.events
+  local part_events = seq.pattern.events
   for row=1,8 do
     local posid = rowToPosid(row, page)
     local e = part_events[posid]

@@ -22,7 +22,7 @@ function withUser.should.editEvent(t)
   end)
 
   t:timeout(function()
-    local e = s.partition.events[1]
+    local e = s.pattern.events[1]
     --return e and e.position and e.position > 0
     return false
   end)

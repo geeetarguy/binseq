@@ -1,15 +1,15 @@
 --[[------------------------------------------------------
 
-  test seq.Partition
+  test seq.Pattern
   --------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.Partition')
+local should = test.Suite('seq.Pattern')
 
 function should.autoLoad()
-  local e = seq.Partition
+  local e = seq.Pattern
   assertType('table', e)
 end
 

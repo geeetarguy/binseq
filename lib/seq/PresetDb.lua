@@ -3,8 +3,8 @@
   seq.PresetDb
   ------------
 
-  A database containing presets (partitions) and events in
-  these partitions.
+  A database containing presets (patterns) and events in
+  these patterns.
 
 --]]------------------------------------------------------
 local lib = {type = 'seq.PresetDb'}
@@ -43,9 +43,9 @@ end
 --==========================================================  PARTITIONS
 
 ------------------------------------------------------------  CREATE
-function lib:createPartition(posid)
-  local stmt = self.create_partition
-  local p = seq.Partition()
+function lib:createPattern(posid)
+  local stmt = self.create_pattern
+  local p = seq.Pattern()
   p.posid = posid
   p.db = self
   stmt:bind_names(p)
@@ -57,25 +57,25 @@ end
 
 ------------------------------------------------------------  READ
 
-function lib:hasPartition(posid)
+function lib:hasPattern(posid)
   local db = self.db
-  local stmt = self.read_partition_by_posid
+  local stmt = self.read_pattern_by_posid
   stmt:bind_names { posid = posid }
   local row = stmt:first_row()
   stmt:reset()
   return row and true
 end
 
--- Return a partition from a row, col and page, nil if not found.
-function lib:getPartition(posid, skip_events)
+-- Return a pattern from a row, col and page, nil if not found.
+function lib:getPattern(posid, skip_events)
   local db = self.db
-  local stmt = self.read_partition_by_posid
+  local stmt = self.read_pattern_by_posid
   stmt:bind_names { posid = posid }
   local row = stmt:first_row()
   stmt:reset()
   if row then
-    -- create Partition object
-    return seq.Partition {
+    -- create Pattern object
+    return seq.Pattern {
       db       = self,
       id       = row[1],
       posid    = row[2],
@@ -92,11 +92,11 @@ end
 
 ------------------------------------------------------------  UPDATE
 
-function lib:setPartition(p)
+function lib:setPattern(p)
   local db = self.db
   local id = p.id
-  assert(id, 'Use createPartition to create new objects')
-  local stmt = self.update_partition
+  assert(id, 'Use createPattern to create new objects')
+  local stmt = self.update_pattern
   stmt:bind_names(p)
   stmt:step()
   stmt:reset()
@@ -104,27 +104,27 @@ end
 
 ------------------------------------------------------------  COPY
 
-function lib:copyPartition(base, new_posid)
-  if self:hasPartition(new_posid) then
-    local p = self:getPartition(new_posid)
+function lib:copyPattern(base, new_posid)
+  if self:hasPattern(new_posid) then
+    local p = self:getPattern(new_posid)
     p:delete()
   end
-  local p = self:createPartition(new_posid)
-  local partition_id = p.id
+  local p = self:createPattern(new_posid)
+  local pattern_id = p.id
   for _, e in ipairs(base.events_list) do
     -- copy events
-    local ne = self:createEvent(e.posid, partition_id)
+    local ne = self:createEvent(e.posid, pattern_id)
     ne:set(e)
   end
 end
 
 ------------------------------------------------------------  DELETE
 
-function lib:deletePartition(p)
+function lib:deletePattern(p)
   local db = self.db
   local id = p.id
-  assert(id, 'Cannot delete partition without id')
-  local stmt = self.delete_partition
+  assert(id, 'Cannot delete pattern without id')
+  local stmt = self.delete_pattern
   stmt:bind_names(p)
   stmt:step()
   stmt:reset()
@@ -133,11 +133,11 @@ end
 --==========================================================  EVENTS
 
 ------------------------------------------------------------  CREATE
-function lib:createEvent(posid, partition_id)
+function lib:createEvent(posid, pattern_id)
   local stmt = self.create_event
   local e = seq.Event()
   e.posid = posid
-  e.partition_id = partition_id
+  e.pattern_id = pattern_id
   e.db = self
   stmt:bind_names(e)
   stmt:step()
@@ -148,11 +148,11 @@ end
 
 ------------------------------------------------------------  READ
 
--- Return a partition from a row, col and page, nil if not found.
-function lib:getEvent(posid, partition_id)
+-- Return a pattern from a row, col and page, nil if not found.
+function lib:getEvent(posid, pattern_id)
   local db = self.db
-  local stmt = self.read_event_by_partition_id_and_posid
-  stmt:bind_names { partition_id = partition_id, posid = posid }
+  local stmt = self.read_event_by_pattern_id_and_posid
+  stmt:bind_names { pattern_id = pattern_id, posid = posid }
   local row = stmt:first_row()
   stmt:reset()
   if row then
@@ -163,13 +163,13 @@ function lib:getEvent(posid, partition_id)
   end
 end
 
--- Returns an iterator over all the events in the partition
-function lib:getEvents(partition_id)
+-- Returns an iterator over all the events in the pattern
+function lib:getEvents(pattern_id)
   local db = self.db
   local list   = {}
   local events = {}
-  local stmt = self.read_events_by_partition_id
-  stmt:bind_names { partition_id = partition_id }
+  local stmt = self.read_events_by_pattern_id
+  stmt:bind_names { pattern_id = pattern_id }
   
   -- stmt:rows() is an iterator
   local next_row = stmt:rows()
@@ -216,15 +216,15 @@ end
 function private:prepareDb(is_new)
   local db = self.db
 
-  -- preset (which partition on which channel)
+  -- preset (which pattern on which channel)
 
   if is_new then
     db:exec [[
       CREATE TABLE presets (id INTEGER PRIMARY KEY);
-      CREATE UNIQUE INDEX presets_id_idx ON partitions(id);
-      CREATE TABLE presets_partitions (preset_id INTEGER, partition_id INTEGER);
-      CREATE INDEX presets_partitions_preset_id_idx ON presets_partitions(preset_id);
-      CREATE INDEX presets_partitions_partition_id_idx ON presets_partitions(partition_id);
+      CREATE UNIQUE INDEX presets_id_idx ON patterns(id);
+      CREATE TABLE presets_patterns (preset_id INTEGER, pattern_id INTEGER);
+      CREATE INDEX presets_patterns_preset_id_idx ON presets_patterns(preset_id);
+      CREATE INDEX presets_patterns_pattern_id_idx ON presets_patterns(pattern_id);
     ]]
   end
 
@@ -233,35 +233,35 @@ function private:prepareDb(is_new)
   -- note, velocity, length, position, loop are global settings
   if is_new then
     db:exec [[
-      CREATE TABLE partitions (id INTEGER PRIMARY KEY, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL);
-      CREATE UNIQUE INDEX partitions_id_idx ON partitions(id);
+      CREATE TABLE patterns (id INTEGER PRIMARY KEY, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL);
+      CREATE UNIQUE INDEX patterns_id_idx ON patterns(id);
     ]]
   end
 
   ------------------------------------------------------------  CREATE
-  self.create_partition = db:prepare [[
-    INSERT INTO partitions VALUES (NULL, :posid, :note, :velocity, :length, :position, :loop);
+  self.create_pattern = db:prepare [[
+    INSERT INTO patterns VALUES (NULL, :posid, :note, :velocity, :length, :position, :loop);
   ]]
 
   ------------------------------------------------------------  READ
-  self.read_partition_by_id = db:prepare [[
-    SELECT * FROM partitions WHERE id = :id;
+  self.read_pattern_by_id = db:prepare [[
+    SELECT * FROM patterns WHERE id = :id;
   ]]
 
-  self.read_partition_by_posid = db:prepare [[
-    SELECT * FROM partitions WHERE posid = :posid;
+  self.read_pattern_by_posid = db:prepare [[
+    SELECT * FROM patterns WHERE posid = :posid;
   ]]
 
   ------------------------------------------------------------  UPDATE
-  self.update_partition = db:prepare [[
-    UPDATE partitions SET posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop WHERE id = :id;
+  self.update_pattern = db:prepare [[
+    UPDATE patterns SET posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
-  self.delete_partition = db:prepare [[
-    DELETE FROM partitions WHERE id = :id;
-    DELETE FROM events WHERE partition_id = :id;
-    DELETE FROM presets_partitions WHERE partition_id = :id;
+  self.delete_pattern = db:prepare [[
+    DELETE FROM patterns WHERE id = :id;
+    DELETE FROM events WHERE pattern_id = :id;
+    DELETE FROM presets_patterns WHERE pattern_id = :id;
   ]]
 
   
@@ -270,15 +270,15 @@ function private:prepareDb(is_new)
   -- events table
   if is_new then
     db:exec [[
-      CREATE TABLE events (id INTEGER PRIMARY KEY, partition_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, mute INTEGER);
+      CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, mute INTEGER);
       CREATE UNIQUE INDEX events_id_idx ON events(id);
-      CREATE INDEX events_partition_id_idx ON events(partition_id);
+      CREATE INDEX events_pattern_id_idx ON events(pattern_id);
     ]]
   end
 
   ------------------------------------------------------------  CREATE
   self.create_event = db:prepare [[
-    INSERT INTO events VALUES (NULL, :partition_id, :posid, :note, :velocity, :length, :position, :loop, :mute);
+    INSERT INTO events VALUES (NULL, :pattern_id, :posid, :note, :velocity, :length, :position, :loop, :mute);
   ]]
 
   ------------------------------------------------------------  READ
@@ -286,17 +286,17 @@ function private:prepareDb(is_new)
     SELECT * FROM events WHERE id = :id;
   ]]
 
-  self.read_event_by_partition_id_and_posid = db:prepare [[
-    SELECT * FROM events WHERE partition_id = :partition_id AND posid = :posid;
+  self.read_event_by_pattern_id_and_posid = db:prepare [[
+    SELECT * FROM events WHERE pattern_id = :pattern_id AND posid = :posid;
   ]]
 
-  self.read_events_by_partition_id = db:prepare [[
-    SELECT * FROM events WHERE partition_id = :partition_id;
+  self.read_events_by_pattern_id = db:prepare [[
+    SELECT * FROM events WHERE pattern_id = :pattern_id;
   ]]
 
   ------------------------------------------------------------  UPDATE
   self.update_event = db:prepare [[
-    UPDATE events SET partition_id = :partition_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, mute = :mute WHERE id = :id;
+    UPDATE events SET pattern_id = :pattern_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, mute = :mute WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
@@ -312,7 +312,7 @@ end
 function private:eventFromRow(row)
   local e = seq.Event {
     id           = row[1],
-    partition_id = row[2],
+    pattern_id = row[2],
     posid        = row[3],
     note         = row[4],
     velocity     = row[5],

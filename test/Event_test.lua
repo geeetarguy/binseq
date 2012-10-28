@@ -294,12 +294,12 @@ local function assertPairEqual(a, b, c, d)
 end
 
 function should.computeIdToGrid()
-  assertPairEqual(1, 1, posidToGrid(1, 0))
-  assertPairEqual(1, 3, posidToGrid(3, 0))
-  assertPairEqual(3, 1, posidToGrid(17, 0))
-  assertPairEqual(2, 2, posidToGrid(34, 1))
-  assertNil(posidToGrid(1, 1))
-  assertNil(posidToGrid(25, 0))
+  assertPairEqual(1, 1, posidToGrid(1, 0, 3))
+  assertPairEqual(1, 3, posidToGrid(3, 0, 3))
+  assertPairEqual(3, 1, posidToGrid(17, 0, 3))
+  assertPairEqual(2, 2, posidToGrid(34, 1, 3))
+  assertNil(posidToGrid(1, 1, 3))
+  assertNil(posidToGrid(25, 0, 3))
 end
 
 local gridToPosid = seq.Event.gridToPosid

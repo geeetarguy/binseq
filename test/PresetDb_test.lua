@@ -22,57 +22,57 @@ function should.openInMemory()
   end)
 end
 
---===================================== Partition
-function should.createPartition()
+--===================================== Pattern
+function should.createPattern()
   local db = seq.PresetDb(':memory')
   -- row, col, page
-  local p = db:createPartition(5)
-  assertEqual('seq.Partition', p.type)
+  local p = db:createPattern(5)
+  assertEqual('seq.Pattern', p.type)
   assertEqual(1, p.id)
   assertEqual(5, p.posid)
-  p = db:createPartition(3, 3, 0)
+  p = db:createPattern(3, 3, 0)
   assertEqual(2, p.id)
 end
 
-function should.getPartition()
+function should.getPattern()
   local db = seq.PresetDb(':memory')
   -- row, col, page
-  local p1 = db:createPartition(5)
-  local p2 = db:getPartition(5)
+  local p1 = db:createPattern(5)
+  local p2 = db:getPattern(5)
   assertEqual(p1.id, p2.id)
-  assertEqual('seq.Partition', p2.type)
+  assertEqual('seq.Pattern', p2.type)
   assertEqual(p1.posid, p2.posid)
 end
 
-function should.loadAllEventsOngetPartition()
+function should.loadAllEventsOngetPattern()
   local db = helper.populateDb()
   -- row, col, page
-  -- this should be partition 17
-  local p = db:getPartition(3, 1, 0)
+  -- this should be pattern 17
+  local p = db:getPattern(3, 1, 0)
   assertEqual(17, p.id)
 
   -- should contain 48 events
   assertEqual(48, #p.events_list)
 end
 
-function should.updatePartition()
+function should.updatePattern()
   local db = seq.PresetDb(':memory')
   -- row, col, page
-  local p = db:createPartition(5)
+  local p = db:createPattern(5)
   assertEqual(0, p.loop)
   p.loop = 48
   p:save()
-  p = db:getPartition(5)
+  p = db:getPattern(5)
   assertEqual(48, p.loop)
 end
 
-function should.deletePartition()
+function should.deletePattern()
   local db = seq.PresetDb(':memory')
   -- row, col, page
-  local p = db:createPartition(5)
+  local p = db:createPattern(5)
   assertEqual(0, p.loop)
   p:delete()
-  p = db:getPartition(5)
+  p = db:getPattern(5)
   assertNil(p)
 end
 
@@ -83,7 +83,7 @@ function should.createEvent()
   local e = db:createEvent(5, 17)
   assertEqual('seq.Event', e.type)
   assertEqual(1, e.id)
-  assertEqual(17, e.partition_id)
+  assertEqual(17, e.pattern_id)
   assertEqual(5, e.posid)
   e = db:createEvent(6, 17)
   assertEqual(2, e.id)
@@ -92,7 +92,7 @@ end
 
 function should.getEvent()
   local db = seq.PresetDb(':memory')
-  -- row, col, page, partition_id
+  -- row, col, page, pattern_id
   local p1 = db:createEvent(5, 17)
   local p2 = db:getEvent(5, 17)
   assertEqual(p1.id, p2.id)
@@ -113,7 +113,7 @@ end
 
 function should.storeMute()
   local db = seq.PresetDb(':memory')
-  -- row, col, page, partition_id
+  -- row, col, page, pattern_id
   local p1 = db:createEvent(5, 17)
   -- auto save
   p1:set {mute = 0}
@@ -135,7 +135,7 @@ function helper.populateDb()
   local db = seq.PresetDb(':memory')
   for row = 1,8 do
     for col = 1,8 do
-      local p = db:createPartition(row, col, 0)
+      local p = db:createPattern(row, col, 0)
       --print(p.id)
     end
   end

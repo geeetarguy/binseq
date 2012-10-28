@@ -36,15 +36,14 @@ function lib.new(name, db_path)
     -- buttons on the right
     seq_bits = {},
     selected_id  = 1,
-
     selected_seq = nil,
+    db_path = db_path or os.getenv('HOME') .. '/Documents/' .. name .. '.db'
   }
   setmetatable(self, lib)
   private.setupMidi(self)
   self:selectSequencer(1)
   return self
 end
-
 
 function lib:selectSequencer(nb)
   -- current view
@@ -55,7 +54,7 @@ function lib:selectSequencer(nb)
     -- keep same view
     view_name = aseq.view.name
     view_key = aseq.view.key
-    if not aseq.partition then
+    if not aseq.pattern then
       -- unstarted sequencer, remove
       for i, s in ipairs(self.seq_list) do
         if s == aseq then
@@ -70,7 +69,7 @@ function lib:selectSequencer(nb)
   local aseq = self.sequencers[nb]
   if not aseq then
     view_name = 'Preset'
-    aseq = seq.Sequencer()
+    aseq = seq.Sequencer(self.db_path)
     aseq.channel = nb
     aseq.views = {}
     self.sequencers[nb] = aseq
@@ -119,7 +118,7 @@ end
 function lib:loadView(name, ...)
   local aseq = self.selected_seq
 
-  if name ~= 'Preset' and not aseq.partition then
+  if name ~= 'Preset' and not aseq.pattern then
     return -- refuse to leave preset page
   end
 
@@ -157,7 +156,7 @@ end
 
 function lib:reScheduleAll(t)
   for _, aseq in ipairs(self.seq_list) do
-    if aseq.partition then
+    if aseq.pattern then
       aseq:buildActiveList(t)
     end
   end

@@ -1,15 +1,18 @@
 --[[------------------------------------------------------
 
-  seq.Partition
+  seq.Pattern
   -------------
 
-  A partition contains events and partition settings (host
-  reset, etc).
+  A Pattern contains:
+    * list of events
+
+  The pattern responds to
+    * ???
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.Partition'}
+local lib = {type = 'seq.Pattern'}
 lib.__index      = lib
-seq.Partition    = lib
+seq.Pattern    = lib
 local private    = {}
 
 --=============================================== PUBLIC
@@ -19,15 +22,9 @@ setmetatable(lib, {
   end
 })
 
--- seq.Partition(...)
+-- seq.Pattern(...)
 function lib.new(def)
   local self = def or {
-    -- Global alterations
-    note     = 0,
-    velocity = 0,
-    length   = 0,
-    position = 0,
-    loop     = 0,
   }
 
   -- Find event by event posid
@@ -59,14 +56,14 @@ end
 function lib:save()
   -- Write event in database
   local db = self.db
-  assert(db, 'Cannot save partition without database')
-  db:setPartition(self)
+  assert(db, 'Cannot save pattern without database')
+  db:setPattern(self)
 end
 
 function lib:delete()
   local db = self.db
-  assert(db, 'Cannot delete partition without database')
-  db:deletePartition(self)
+  assert(db, 'Cannot delete pattern without database')
+  db:deletePattern(self)
 end
 
 function lib:deleteEvent(e)

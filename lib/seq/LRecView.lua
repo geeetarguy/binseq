@@ -58,7 +58,7 @@ end
 function lib:display()
   local pad = self.pad
   local seq = self.seq
-  local events = self.seq.partition.events
+  local events = self.seq.pattern.events
   local page = self.page
   local rec_events = self.rec_events
   local rec_list = self.rec_list
@@ -189,7 +189,7 @@ function private:pressGrid(row, col)
 
   local posid = gridToPosid(row, col, self.page)
 
-  local e = seq.partition.events[posid]
+  local e = seq.pattern.events[posid]
   if rec_events[posid] then
     -- remove
     private.removeFromList(self, rec_events, rec_list, e)
