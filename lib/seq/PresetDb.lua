@@ -74,7 +74,6 @@ function lib:hasSong(posid)
   return row and true
 end
 
--- Return a pattern from a row, col and page, nil if not found.
 function lib:getSong(posid)
   local db = self.db
   local stmt = self.read_song_by_posid
@@ -171,7 +170,6 @@ function lib:hasPattern(posid, song_id)
   return row and true
 end
 
--- Return a pattern from a row, col and page, nil if not found.
 function lib:getPattern(posid, song_id)
   local db = self.db
   local stmt = self.read_pattern_by_posid
@@ -240,21 +238,25 @@ function lib:deletePattern(p)
   local db = self.db
   local id = p.id
   assert(id, 'Cannot delete pattern without id')
-  local stmt = self.delete_pattern
-  stmt:bind_names(p)
-  stmt:step()
-  stmt:reset()
+  db:exec 'BEGIN'
+  for _, stmt in ipairs(self.delete_pattern) do
+    stmt:bind_names(p)
+    stmt:step()
+    stmt:reset()
+  end
+  db:exec 'COMMIT'
 end
 
 
---[[
 --==========================================================  SEQUENCERS
 
 ------------------------------------------------------------  CREATE
-function lib:createSequencer(posid)
-  local stmt = self.create_pattern
-  local p = seq.Sequencer()
-  p.posid = posid
+function lib:createSequencer(posid, song_id)
+  local stmt = self.create_sequencer
+  local p = seq.Sequencer {
+    song_id = song_id,
+    posid   = posid,
+  }
   p.db = self
   stmt:bind_names(p)
   stmt:step()
@@ -267,14 +269,13 @@ end
 
 function lib:hasSequencer(posid)
   local db = self.db
-  local stmt = self.read_pattern_by_posid
+  local stmt = self.read_sequencer_by_posid
   stmt:bind_names { posid = posid }
   local row = stmt:first_row()
   stmt:reset()
   return row and true
 end
 
--- Return a pattern from a row, col and page, nil if not found.
 function lib:getSequencer(posid, song_id)
   local db = self.db
   local stmt = self.read_pattern_by_posid
@@ -338,7 +339,6 @@ function lib:deleteSequencer(p)
   stmt:reset()
 end
 
---]]
 --==========================================================  EVENTS
 
 ------------------------------------------------------------  CREATE
@@ -357,7 +357,6 @@ end
 
 ------------------------------------------------------------  READ
 
--- Return a pattern from a row, col and page, nil if not found.
 function lib:getEvent(posid, pattern_id)
   local db = self.db
   local stmt = self.read_event_by_pattern_id_and_posid
@@ -497,11 +496,11 @@ function private:prepareDb(is_new)
   ]]
 
   ------------------------------------------------------------  DELETE
-  self.delete_pattern = db:prepare [[
-    DELETE FROM patterns WHERE id = :id;
-    DELETE FROM events WHERE pattern_id = :id;
-    DELETE FROM sequencers_patterns WHERE pattern_id = :id;
-  ]]
+  self.delete_pattern = {
+    db:prepare 'DELETE FROM patterns WHERE id = :id;',
+    db:prepare 'DELETE FROM events WHERE pattern_id = :id;',
+    db:prepare 'DELETE FROM sequencers_patterns WHERE pattern_id = :id;',
+  }
   
   --==========================================================  Sequencer
   -- note, velocity, length, position, loop are global settings
@@ -511,9 +510,9 @@ function private:prepareDb(is_new)
   --   => channel, mute, pattern mode (single, multiple, latch)
   if is_new then
     db:exec [[
-      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, channel INTEGER);
+      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, channel INTEGER);
       CREATE UNIQUE INDEX sequencers_idx ON sequencers(id);
-      CREATE UNIQUE INDEX sequencers_posidx ON sequencers(id);
+      CREATE UNIQUE INDEX sequencers_song_posidx ON sequencers(song_id, id);
 
       CREATE TABLE sequencers_patterns (sequencer_id INTEGER, pattern_id INTEGER);
       CREATE INDEX sequencers_patterns_sequencer_idx ON sequencers_patterns(sequencer_id);
@@ -523,7 +522,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_sequencer = db:prepare [[
-    INSERT INTO sequencers VALUES (NULL, :posid, :note, :velocity, :length, :position, :loop, :channel);
+    INSERT INTO sequencers VALUES (NULL, :song_id, :posid, :note, :velocity, :length, :position, :loop, :channel);
   ]]
 
   ------------------------------------------------------------  READ
@@ -537,15 +536,16 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_sequencer = db:prepare [[
-    UPDATE sequencers SET posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, channel = :channel WHERE id = :id;
+    UPDATE sequencers SET song_id = :song_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, channel = :channel WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
-  self.delete_sequencer = db:prepare [[
-    DELETE FROM sequencers WHERE id = :id;
-    DELETE FROM songs_sequencers    WHERE sequencer_id = :id;
-    DELETE FROM sequencers_patterns WHERE sequencer_id = :id;
-  ]]
+  self.delete_sequencer = {
+    db:prepare 'DELETE FROM sequencers          WHERE id = :id;',
+    db:prepare 'DELETE FROM songs_sequencers    WHERE sequencer_id = :id;',
+    db:prepare 'DELETE FROM sequencers_patterns WHERE sequencer_id = :id;',
+    nil, -- avoid second argument from db:prepare
+  }
 
   --==========================================================  Song
   -- note, velocity, length, position, loop are global settings
@@ -584,6 +584,7 @@ function private:prepareDb(is_new)
   self.delete_song = {
     db:prepare 'DELETE FROM events WHERE pattern_id = (SELECT id FROM patterns WHERE song_id = :id);',
     db:prepare 'DELETE FROM patterns WHERE song_id = :id;',
+    db:prepare 'DELETE FROM sequencers WHERE song_id = :id;',
     db:prepare 'DELETE FROM songs WHERE id = :id;',
     nil, -- to avoid second argument from db:prepare
   }

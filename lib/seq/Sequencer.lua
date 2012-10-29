@@ -24,6 +24,16 @@ lib.__index      = lib
 seq.Sequencer    = lib
 local private    = {}
 
+--=============================================== CONSTANTS
+local SET_KEYS = {
+  song_id  = true,
+  posid    = true,
+  note     = true,
+  velocity = true,
+  length   = true,
+  position = true,
+  loop     = true,
+}
 --=============================================== PUBLIC
 setmetatable(lib, {
   __call = function(lib, ...)
@@ -32,7 +42,7 @@ setmetatable(lib, {
 })
 
 -- seq.Sequencer(...)
-function lib.new(song)
+function lib.new(def)
   local self = {
     song = song,
     t    = 0,
@@ -48,6 +58,9 @@ function lib.new(song)
     loop     = 0,
   }
   setmetatable(self, lib)
+  if def then
+    self:set(def)
+  end
   
   self.destroy = lk.Finalizer(function()
     self:allOff()
@@ -55,6 +68,41 @@ function lib.new(song)
 
   return self
 end
+
+function lib:set(def)
+  for k, v in pairs(def) do
+    if SET_KEYS[k] then
+      self[k] = v
+    end
+  end
+
+  if self.db then
+    self:save()
+  end
+end
+
+function lib:save()
+  -- Write event in database
+  local db = self.db
+  assert(db, 'Cannot save pattern without database')
+  db:setSequencer(self)
+end
+
+function lib:allOff()
+  local e = self.list.next
+  self.list.next = nil
+  while e do
+    local ne = e.next
+    e.prev = nil
+    e.next = nil
+    if e.off_t then
+      self:trigger(e)
+    end
+    e = ne
+  end
+end
+
+--[[
 
 function lib:addPattern(pat)
   local pat = self.db:getPattern(posid)
@@ -67,9 +115,9 @@ function lib:selectPattern(posid)
     return
   end
 
-  local part = self.db:getPattern(posid)
+  local part = self.db:getPattern(posid, self.id)
   if not part then
-    part = self.db:createPattern(posid)
+    part = self.db:createPattern(posid, self.id)
   end
   self.pattern = part
   self.global_loop  = part.loop > 0 and part.loop
@@ -235,18 +283,4 @@ function private.insertInList(list, e)
     end
   end
 end
-
-function lib:allOff()
-  local e = self.list.next
-  self.list.next = nil
-  while e do
-    local ne = e.next
-    e.prev = nil
-    e.next = nil
-    if e.off_t then
-      self:trigger(e)
-    end
-    e = ne
-  end
-end
-
+--]]

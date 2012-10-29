@@ -82,7 +82,64 @@ function should.deleteAllPatternsAndEvents()
   assertNil(db:getEvent(3, pat.id))
 end
 
---===================================== Sequencer
+--===================================== Sequencers
+function should.createSequencer()
+  local db = seq.PresetDb(':memory')
+  -- row, col, page
+  local p = db:createSequencer(5)
+  assertEqual('seq.Sequencer', p.type)
+  assertEqual(1, p.id)
+  assertEqual(5, p.posid)
+  p = db:createSequencer(3, 3, 0)
+  assertEqual(2, p.id)
+end
+
+--[=[
+
+function should.getSequencer()
+  local db = seq.PresetDb(':memory')
+  -- row, col, page
+  local p1 = db:createSequencer(5)
+  local p2 = db:getSequencer(5)
+  assertEqual(p1.id, p2.id)
+  assertEqual('seq.Sequencer', p2.type)
+  assertEqual(p1.posid, p2.posid)
+end
+
+function should.loadAllEventsOngetSequencer()
+  local db = helper.mockSong()
+  -- row, col, page
+  -- this should be pattern 17
+  local p = db:getSequencer(3, 1, 0)
+  assertEqual(17, p.id)
+
+  -- should contain 48 events
+  assertEqual(48, #p.events_list)
+end
+
+function should.updateSequencer()
+  local db = seq.PresetDb(':memory')
+  -- row, col, page
+  local p = db:createSequencer(5)
+  assertEqual(0, p.loop)
+  p.loop = 48
+  p:save()
+  p = db:getSequencer(5)
+  assertEqual(48, p.loop)
+end
+
+function should.deleteSequencer()
+  local db = seq.PresetDb(':memory')
+  -- row, col, page
+  local p = db:createSequencer(5)
+  assertEqual(0, p.loop)
+  p:delete()
+  p = db:getSequencer(5)
+  assertNil(p)
+end
+--]=]
+
+--===================================== Patterns
 function should.createPattern()
   local db = seq.PresetDb(':memory')
   -- posid, song_id
@@ -153,61 +210,6 @@ function should.deletePattern()
 end
 
 --[=[
-
---===================================== Pattern
-function should.createPattern()
-  local db = seq.PresetDb(':memory')
-  -- row, col, page
-  local p = db:createPattern(5)
-  assertEqual('seq.Pattern', p.type)
-  assertEqual(1, p.id)
-  assertEqual(5, p.posid)
-  p = db:createPattern(3, 3, 0)
-  assertEqual(2, p.id)
-end
-
-function should.getPattern()
-  local db = seq.PresetDb(':memory')
-  -- row, col, page
-  local p1 = db:createPattern(5)
-  local p2 = db:getPattern(5)
-  assertEqual(p1.id, p2.id)
-  assertEqual('seq.Pattern', p2.type)
-  assertEqual(p1.posid, p2.posid)
-end
-
-function should.loadAllEventsOngetPattern()
-  local db = helper.mockSong()
-  -- row, col, page
-  -- this should be pattern 17
-  local p = db:getPattern(3, 1, 0)
-  assertEqual(17, p.id)
-
-  -- should contain 48 events
-  assertEqual(48, #p.events_list)
-end
-
-function should.updatePattern()
-  local db = seq.PresetDb(':memory')
-  -- row, col, page
-  local p = db:createPattern(5)
-  assertEqual(0, p.loop)
-  p.loop = 48
-  p:save()
-  p = db:getPattern(5)
-  assertEqual(48, p.loop)
-end
-
-function should.deletePattern()
-  local db = seq.PresetDb(':memory')
-  -- row, col, page
-  local p = db:createPattern(5)
-  assertEqual(0, p.loop)
-  p:delete()
-  p = db:getPattern(5)
-  assertNil(p)
-end
-
 --===================================== Event
 function should.createEvent()
   local db = seq.PresetDb(':memory')
