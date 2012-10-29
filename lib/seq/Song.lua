@@ -31,49 +31,56 @@ function lib:enablePattern(posid)
 end
 
 -- seq.Song(...)
-function lib.new()
-  local self = {
-    -- enabled patterns by posid
-    active_patterns = {},
-  }
+function lib.new(def)
+  local self = def or {}
+  -- enabled patterns by posid
+  self.active_patterns = {}
 
-  -- Find event by event posid
-  self.events      = {}
-  -- List of all events (unsorted)
-  self.events_list = {}
+  -- Find pattern by posid
+  self.patterns = {}
 
   if self.db then
-    -- load events
-    local events = self.events
-    local list = self.events_list
+    -- load patterns
+    local patterns = self.patterns
 
-    for e in self.db:getEvents(self.id) do
-      events[e.posid] = e
-      table.insert(list, e)
+    for p in self.db:getPatterns(self.id) do
+      patterns[p.posid] = p
     end
   end
 
   return setmetatable(self, lib)
 end
 
-function lib:createEvent(posid)
-  local e = self.db:createEvent(posid, self.id)
-  table.insert(self.events_list, e)
-  self.events[posid] = e
+function lib:createPattern(posid)
+  local e = self.db:createPattern(posid, self.id)
+  self.patterns[posid] = e
   return e
 end
 
+-- Get a pattern and preload all events.
+function lib:getPattern(posid)
+  local pat = self.patterns
+  local p = pat[posid]
+  if not p then
+    p = self.db:getPattern(posid, self.id)
+    p:loadEvents()
+    pat[posid] = p
+  end
+  return p
+end
+
 function lib:save()
-  -- Write event in database
+  -- Write song in database
   local db = self.db
-  assert(db, 'Cannot save pattern without database')
+  assert(db, 'Cannot save song without database')
   db:setSong(self)
 end
 
 function lib:delete()
   local db = self.db
-  assert(db, 'Cannot delete pattern without database')
+  assert(db, 'Cannot delete song without database')
   db:deleteSong(self)
+  self.deleted = true
 end
 
 function lib:deleteEvent(e)
