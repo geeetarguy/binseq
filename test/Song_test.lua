@@ -25,4 +25,11 @@ function should.loadSequencers()
   assertEqual('seq.Sequencer', s2.type)
 end
 
+function should.respondToHavePattern()
+  local song = mock()
+  assertTrue(song.patterns[gridToPosid(1,1,0)])
+  assertTrue(song.patterns[gridToPosid(2,2,0)])
+  assertFalse(song.patterns[gridToPosid(7,2,0)])
+end
+
 test.all()

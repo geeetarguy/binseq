@@ -1,6 +1,6 @@
 --[[------------------------------------------------------
 
-  seq.LPresetView
+  seq.LPatternView
   ---------------
 
   This view shows the following elements:
@@ -9,9 +9,9 @@
   [ Green = playing, Red = playing + auto-save, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LPresetView', name = 'Preset'}
+local lib = {type = 'seq.LPatternView', name = 'Pattern'}
 lib.__index         = lib
-seq.LPresetView     = lib
+seq.LPatternView     = lib
 -- Last column operation to function
 local col_button    = {}
 -- Map top buttons
@@ -40,43 +40,35 @@ setmetatable(lib, {
   end
 })
 
--- seq.LPresetView(...)
-function lib.new(lseq, seq)
+-- seq.LPatternView(...)
+function lib.new(lseq, song)
   local self = {
     lseq = lseq,
-    pad = lseq.pad,
-    seq = seq,
+    pad  = lseq.pad,
+    song = lseq.song,
     -- default pagination
     page = 0,
-    -- patterns by posid (only exist / does not exist)
     patterns = {},
   }
 
-  -- load parts info
-  local db = self.seq.db
-  local patterns = self.patterns
-  for row=1,8 do
-    for col=1,8 do
-      local posid = gridToPosid(row, col, self.page)
-      patterns[posid] = db:hasPattern(posid)
-    end
-  end
+  -- patterns by posid
+  self.patterns = song.patterns
 
   return setmetatable(self, lib)
 end
 
 -- Display view content (called on load)
 function lib:display()
-  local pad = self.pad
-  local seq = self.seq
+  local pad  = self.pad
+  local song = self.song
   local parts = self.patterns
-  local curr = (seq.pattern or {}).posid
+  local curr = (song.edit_pattern or {}).posid
   local page = self.page
   -- Clear
   pad:prepare()
   pad:clear()
   -- Display patterns
-  -- Turn on global button
+  -- Turn on 'pattern' button
   pad:button(0, 6):setState('Green')
 
   for row=1,8 do
@@ -91,7 +83,6 @@ function lib:display()
       end
     end
   end
-  self.lseq:showSeqButtons()
   pad:commit()
 end
 

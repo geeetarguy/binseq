@@ -1,23 +1,16 @@
 --[[------------------------------------------------------
 
-  test seq.LSeq
-  -------------
+  test seq.LPatternView
+  --------------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LSeq')
+local should = test.Suite('seq.LPatternView')
 
 function should.autoLoad()
-  local e = seq.LSeq
+  local e = seq.LPatternView
   assertType('table', e)
 end
 
-function should.createLSeq()
-  local ls = seq.LSeq('Foo', ':memory')
-  assertEqual('seq.LSeq', ls.type)
-end
-
 test.all()
-
-

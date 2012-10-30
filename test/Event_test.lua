@@ -80,13 +80,30 @@ function should.computeTriggerTimeWithGlobalLoop()
   assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
 end
 
-function should.setEvent()
+function should.schedule(t)
+  local aseq = {}
+  function aseq:schedule(e)
+    self.e = e
+  end
+
   local e = seq.Event {
-    position = 48
+    position = 48,
+    mute = 0,
   }
-  assertTrue(e:set({position = 24}))
-  assertTrue(e:set({loop = 24}))
-  assertFalse(e:set({note = 24}))
+  e:setSequencer(aseq)
+  assertEqual(e, aseq.e)
+
+  aseq.e = nil
+  e:set {position = 24}
+  assertEqual(e, aseq.e)
+
+  aseq.e = nil
+  e:set {loop = 24}
+  assertEqual(e, aseq.e)
+
+  aseq.e = nil
+  e:set {note = 24}
+  assertNil(aseq.e)
 end
 
 function should.playOnOff()

@@ -19,6 +19,7 @@ lib.__index     = lib
 seq.PresetDb    = lib
 local private   = {}
 local DONE      = sqlite3.DONE
+math.randomseed(os.time())
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -55,12 +56,19 @@ function lib:getOrCreateSong(posid, name)
   local s = self:getSong(posid)
   if s then
     if s.name ~= name then
-      s:set(name)
+      s:set {name = name}
     end
     return s
   end
 
   local stmt = self.create_song
+  if not name then
+    local s = ''
+    for i=1,21 do
+      s = s .. string.char(60 + math.random(64))
+    end
+    name = s
+  end
   local p = seq.Song {posid = posid, name = name}
   p.posid = posid
   p.db = self

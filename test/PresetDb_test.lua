@@ -23,21 +23,21 @@ function should.openInMemory()
 end
 
 --===================================== Song
-function should.createSong()
+function should.getOrCreateSong()
   local db = seq.PresetDb(':memory')
   -- row, col, page
-  local p = db:createSong(5, 'foobar')
+  local p = db:getOrCreateSong(5, 'foobar')
   assertEqual('seq.Song', p.type)
   assertEqual(1, p.id)
   assertEqual(5, p.posid)
   assertEqual('foobar', p.name)
-  p = db:createSong(6)
+  p = db:getOrCreateSong(6)
   assertEqual(2, p.id)
 end
 
 function should.getSong()
   local db = seq.PresetDb(':memory')
-  local p1 = db:createSong(5, 'fool')
+  local p1 = db:getOrCreateSong(5, 'fool')
   local p2 = db:getSong(5)
   assertEqual(p1.id, p2.id)
   assertEqual('fool', p2.name)
@@ -47,7 +47,7 @@ end
 
 function should.updateSong()
   local db = seq.PresetDb(':memory')
-  local p = db:createSong(5, 'bar')
+  local p = db:getOrCreateSong(5, 'bar')
   assertEqual('bar', p.name)
   p.name = 'foo'
   p:save()
@@ -57,7 +57,7 @@ end
 
 function should.deleteSong()
   local db = seq.PresetDb(':memory')
-  local p = db:createSong(5)
+  local p = db:getOrCreateSong(5)
   p:delete()
   p = db:getSong(5)
   assertNil(p)
@@ -65,7 +65,7 @@ end
 
 function should.deleteAllPatternsAndEvents()
   local db   = seq.PresetDb(':memory')
-  local song = db:createSong(5)
+  local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local pat2 = song:getOrCreatePattern(7)
   local e    = pat:getOrCreateEvent(3)
@@ -298,7 +298,7 @@ end
 
 function helper.mockSong()
   local db = seq.PresetDb(':memory')
-  local song = db:createSong(1, 'hello')
+  local song = db:getOrCreateSong(1, 'hello')
   for row = 1,8 do
     for col = 1,8 do
       song:getOrCreatePattern(seq.Event.gridToPosid(row, col, 0))

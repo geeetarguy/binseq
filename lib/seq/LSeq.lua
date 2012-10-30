@@ -37,15 +37,60 @@ function lib.new(name, db_path)
     seq_bits = {},
     selected_id  = 1,
     selected_seq = nil,
-    db_path = db_path or os.getenv('HOME') .. '/Documents/' .. name .. '.db'
+    db = seq.PresetDb(db_path or os.getenv('HOME') .. '/Documents/' .. name .. '.db'),
   }
+
   setmetatable(self, lib)
+
   private.setupMidi(self)
-  self:selectSequencer(1)
+
+  self:loadSong(1)
   return self
 end
 
-function lib:selectSequencer(nb)
+function lib:loadSong(posid)
+  local song = self.db:getOrCreateSong(posid)
+  local view_name
+  if self.song then
+    view_name = self.song.view and self.song.view.name or 'Pattern'
+  else
+  end
+  view_name = 'Home'
+  self.song = song
+  -- Prepare to be used with Launchpad views.
+  song.views = {}
+
+  self:loadView(view_name)
+end
+
+function lib:loadView(name, ...)
+  local song = self.song
+
+  --if name ~= 'Pattern' and not song.edit_pattern then
+  --  return -- refuse to leave pattern page
+  --end
+
+  if song.view then
+    song.last_name = song.view.name
+  end
+
+  local view = song.views[name]
+  if not view then
+    local t = seq['L'..name..'View']
+    if t then
+      view = t(self, song)
+      song.views[name] = view
+    else
+      error('Could not find seq.L'..name..'View view')
+    end
+  end
+
+  song.view = view
+  self.pad:loadView(view, ...)
+end
+
+--[[
+function lib:selectSequencer(posid)
   -- current view
   local aseq = self.selected_seq
   local view_name = 'Preset'
@@ -115,32 +160,6 @@ function lib:showSeqButtons()
   end
 end
 
-function lib:loadView(name, ...)
-  local aseq = self.selected_seq
-
-  if name ~= 'Preset' and not aseq.pattern then
-    return -- refuse to leave preset page
-  end
-
-
-  if aseq.view then
-    aseq.last_name = aseq.view.name
-  end
-
-  local view = aseq.views[name]
-  if not view then
-    local t = seq['L'..name..'View']
-    if t then
-      view = t(self, aseq)
-      aseq.views[name] = view
-    else
-      error('Could not find seq.L'..name..'View view')
-    end
-  end
-
-  aseq.view = view
-  self.pad:loadView(view, ...)
-end
 
 function lib:trigger(t)
   for _, aseq in ipairs(self.seq_list) do
@@ -226,6 +245,8 @@ function lib:record(msg)
     rec:record(msg)
   end
 end
+
+--]]
 
 function private:setupMidi()
   local midiout = midi.Out()
