@@ -93,6 +93,12 @@ function lib:enablePattern(posid)
   end
 end
 
+function lib:loadPatterns()
+  for posid in self.db:getActivePatternPosids(self.id) do
+    self:enablePattern(posid)
+  end
+end
+
 function lib:allOff()
   local e = self.list.next
   self.list.next = nil

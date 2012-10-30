@@ -104,6 +104,36 @@ function should.getSequencer()
   assertEqual(p1.posid, p2.posid)
 end
 
+function should.setActivePatternPosid()
+  local db = seq.PresetDb(':memory')
+  -- posid, song_id
+  local s = db:getOrCreateSequencer(5, 1)
+  local p = db:getOrCreatePattern(3, s.id)
+  assertPass(function()
+    db:activatePattern(p.id, s.id)
+  end)
+end
+
+function should.getActivePatternPosids()
+  local db = seq.PresetDb(':memory')
+  -- posid, song_id
+  local s = db:getOrCreateSequencer(5, 1)
+  local p = db:getOrCreatePattern(3, s.id)
+  db:activatePattern(p.id, s.id)
+
+  p = db:getOrCreatePattern(13, s.id)
+  db:activatePattern(p.id, s.id)
+
+  p = db:getOrCreatePattern(14, s.id)
+  db:activatePattern(p.id, s.id)
+
+  local posids = {}
+  for posid in db:getActivePatternPosids(s.id) do
+    table.insert(posids, posid)
+  end
+  assertValueEqual({3, 13, 14}, posids)
+end
+
 function should.updateSequencer()
   local db = seq.PresetDb(':memory')
   -- posid, song_id
@@ -249,8 +279,6 @@ function should.deleteEvent()
   e = db:getEvent(5, 17)
   assertNil(e)
 end
-
---]=]
 
 function helper.mockSong()
   local db = seq.PresetDb(':memory')
