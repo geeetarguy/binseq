@@ -25,15 +25,7 @@ seq.Sequencer    = lib
 local private    = {}
 
 --=============================================== CONSTANTS
-local SET_KEYS = {
-  song_id  = true,
-  posid    = true,
-  note     = true,
-  velocity = true,
-  length   = true,
-  position = true,
-  loop     = true,
-}
+
 --=============================================== PUBLIC
 setmetatable(lib, {
   __call = function(lib, ...)
@@ -44,11 +36,10 @@ setmetatable(lib, {
 -- seq.Sequencer(...)
 function lib.new(def)
   local self = {
-    song = song,
     t    = 0,
     -- Playback list
     list = {},
-    -- Active patterns
+    -- Active patterns by posid
     patterns = {},
     -- Global alterations
     note     = 0,
@@ -71,9 +62,7 @@ end
 
 function lib:set(def)
   for k, v in pairs(def) do
-    if SET_KEYS[k] then
-      self[k] = v
-    end
+    self[k] = v
   end
 
   if self.db then
@@ -82,23 +71,36 @@ function lib:set(def)
 end
 
 function lib:save()
-  -- Write event in database
+  -- Write sequencer in database
   local db = self.db
-  assert(db, 'Cannot save pattern without database')
+  assert(db, 'Cannot save sequencer without database')
   db:setSequencer(self)
+end
+
+function lib:delete()
+  local db = self.db
+  assert(db, 'Cannot delete sequencer without database')
+  db:deleteSequencer(self)
+  self.deleted = true
+end
+
+function lib:enablePattern(posid)
+  local pat = self.song:getOrCreatePattern(posid)
+  self.patterns[posid] = pat
+  -- Schedule pattern events
+  for _, e in pairs(pat.events) do
+    e:setSequencer(self)
+  end
 end
 
 function lib:allOff()
   local e = self.list.next
   self.list.next = nil
   while e do
-    local ne = e.next
-    e.prev = nil
-    e.next = nil
     if e.off_t then
-      self:trigger(e)
+      self:trigger(e, true)
     end
-    e = ne
+    e = e.next
   end
 end
 
@@ -172,7 +174,7 @@ function lib:scheduleAll(tc)
   return list
 end
 
-function lib:trigger(e)
+function lib:trigger(e, skip_schedule)
   -- 1. Trigger event
   if e.mute == 0 or e.off_t then
     local f = self.playback
@@ -183,7 +185,9 @@ function lib:trigger(e)
   -- Keep last trigger time to reschedule event on edit/create.
   self.t = e.t
   -- 2. Reschedule
-  private.schedule(self, e, true)
+  if not skip_schedule then
+    self:schedule(e, true)
+  end
 end
 
 -- Start playback
@@ -234,7 +238,7 @@ function private:startThread()
   end
 end
 
-function private:schedule(e, not_now)
+function lib:schedule(e, not_now)
   e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
   private.insertInList(self.list, e)
 end

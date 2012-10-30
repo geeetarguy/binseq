@@ -27,26 +27,53 @@ setmetatable(lib, {
 
 -- seq.Pattern(...)
 function lib.new(def)
-  local self = def or {}
+  local self = {
+    -- Find event by event posid
+    events = {}
+  }
 
-  -- Find event by event posid
-  self.events      = {}
-
-  return setmetatable(self, lib)
+  setmetatable(self, lib)
+  if def then
+    self:set(def)
+  end
+  return self
 end
 
-function lib:loadEvents()
-  -- load events
-  local events = self.events
+function lib:set(def)
+  for k, v in pairs(def) do
+    self[k] = v
+  end
 
-  for e in self.db:getEvents(self.id) do
-    events[e.posid] = e
+  if self.db then
+    self:save()
   end
 end
 
-function lib:createEvent(posid)
-  local e = self.db:createEvent(posid, self.id)
-  self.events[posid] = e
+function lib:save()
+  -- Write event in database
+  local db = self.db
+  assert(db, 'Cannot save pattern without database')
+  db:setSequencer(self)
+end
+
+function lib:loadEvents()
+  if not self.loaded then
+    -- load events
+    local events = self.events
+
+    for e in self.db:getEvents(self.id) do
+      events[e.posid] = e
+    end
+    self.loaded = true
+  end
+end
+
+function lib:getOrCreateEvent(posid)
+  local e = self.events[posid]
+  if not e then
+    e = self.db:getOrCreateEvent(posid, self.id)
+    self.events[posid] = e
+  end
   return e
 end
 

@@ -44,6 +44,22 @@ function lib.new(def)
   return self
 end
 
+-- The event becomes active inside a Sequencer.
+function lib:setSequencer(aseq)
+  if self.seq then
+    -- Remove from previous sequencer
+    if self.off_t then
+      -- play note Off
+      self.seq:trigger(self, true)
+    end
+    self.seq:removeFromList(self)
+  end
+  self.seq = aseq
+  if self.mute ~= 1 then
+    aseq:schedule(self)
+  end
+end
+
 -- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
   local need_schedule = false
