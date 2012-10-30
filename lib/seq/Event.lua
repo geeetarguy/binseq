@@ -76,7 +76,7 @@ function lib:set(def)
           self.off_t = self.off_t - self.length + value
         end
         need_schedule = true
-      elseif not need_schedule and key == 'position' or key == 'loop' then
+      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' then
         need_schedule = true
       end
       self[key] = value

@@ -38,18 +38,21 @@ function should.buildActiveList()
   e:set {
     position = 0,  -- events 0, 96, 192
     loop = 96,
+    mute = 0,
   }
 
   e = p:getOrCreateEvent(2)
   e:set {
     position = 24, -- events 24, 72, 120
     loop = 48,
+    mute = 0,
   }
 
   e = p:getOrCreateEvent(3)
   e:set {
     position = 0, -- events 0, 24, 48, 72, 96
     loop = 24,
+    mute = 0,
   }
 
   -- reading head is now at t == 8 (events at 8 are triggered)
@@ -91,28 +94,35 @@ function should.moveOnTrigger()
   assertEqual(14, aseq.t)
 end
 
---[[
-
 function should.rescheduleEventOnTrigger()
-  local s = seq.Sequencer(':memory')
-  s:setEvent(1, {
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  local p = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e
+  e = p:getOrCreateEvent(1)
+  e:set {
     position = 0,  -- events 0, 96, 192
     loop = 96,
-  })
+    mute = 0,
+  }
 
-  s:setEvent(2, {
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 24, -- events 24, 72, 120
     loop = 48,
-  })
+    mute = 0,
+  }
 
-  s:setEvent(3, {
+  e = p:getOrCreateEvent(3)
+  e:set {
     position = 0, -- events 0, 24, 48, 72, 96
     loop = 24,
-  })
+    mute = 0,
+  }
 
-  local t = 8
-  local list = s:buildActiveList(t)
-  local l
+  aseq:move(8)
+  list = aseq.list
   
   local triggers = {
     {2, 24},
@@ -126,68 +136,99 @@ function should.rescheduleEventOnTrigger()
   }
 
   for _, trig in ipairs(triggers) do
-    l = list.next
+    local l = list.next
     assertEqual(trig[1], l.id)
     assertEqual(trig[2], l.t)
-    s:trigger(l)
+    aseq:trigger(l)
   end
 end
 
 function should.rescheduleEventOnEdit()
-  local s = seq.Sequencer(':memory')
-  s:setEvent(1, {
-    position = 0,  -- events 0, 96, 192
-    -- default loop = 96
-  })
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  local list = aseq.list
+  local p = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e
+  e = p:getOrCreateEvent(1)
 
-  s:setEvent(2, {
+  assertNil(list.next) -- e is muted
+  e:set {mute = 0}
+
+  assertEqual(0, list.next.t)
+
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 24, -- events 24, 72, 120
     loop = 48,
-  })
+    mute = 0,
+  }
 
-  local list = s.list
   assertEqual(1, list.next.id)
   assertEqual(2, list.next.next.id)
   assertNil(list.next.next.next)
 
-  s:setEvent(3, {
+  e = p:getOrCreateEvent(3)
+
+  e:set {
     position = 10, -- events 10, 34, 58, 82, 106
     loop = 24,
-  })
+    mute = 0,
+  }
   assertEqual(1, list.next.id)           -- 0
   assertEqual(3, list.next.next.id)      -- 10
   assertEqual(2, list.next.next.next.id) -- 24
+  assertEqual(0,  list.next.t)           -- 0
+  assertEqual(10, list.next.next.t)      -- 10
+  assertEqual(24, list.next.next.next.t) -- 24
 
-  s:setEvent(2, {
+  -- move existing event
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 5, -- events 5, 52, 101
-  })
+  }
+
   assertEqual(1, list.next.id)           -- 0
   assertEqual(2, list.next.next.id)      -- 5
   assertEqual(3, list.next.next.next.id) -- 10
+  assertEqual(0, list.next.t)            -- 0
+  assertEqual(5, list.next.next.t)       -- 5
+  assertEqual(10,list.next.next.next.t)  -- 10
 end
 
 function should.rescheduleEventOnEditWithT()
-  local s = seq.Sequencer(':memory')
-  s.t = 20
-  s:setEvent(1, {
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  aseq:move(20)
+
+  local list = aseq.list
+  local p = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e
+  e = p:getOrCreateEvent(1)
+  e:set {
     position = 0,  -- events 0, 96, 192
     loop = 96,
-  })
+    mute = 0,
+  }
 
-  s:setEvent(2, {
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 24, -- events 24, 72, 120
     loop = 48,
-  })
+    mute = 0,
+  }
 
-  local list = s.list
   assertEqual(2, list.next.id)      -- 24
   assertEqual(1, list.next.next.id) -- 96
   assertNil(list.next.next.next)
 
-  s:setEvent(3, {
+  e = p:getOrCreateEvent(3)
+  e:set {
     position = 10, -- events 10, 34, 58, 82, 106
     loop = 24,
-  })
+    mute = 0,
+  }
   assertEqual(2, list.next.id)           -- 24
   assertEqual(24, list.next.t)
   assertEqual(3, list.next.next.id)      -- 34
@@ -195,13 +236,22 @@ function should.rescheduleEventOnEditWithT()
   assertEqual(1, list.next.next.next.id) -- 96
   assertEqual(96, list.next.next.next.t)
 
-  s:setEvent(2, {
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 5, -- events 5, 52, 101
-  })
+    mute = 0,
+  }
   assertEqual(3, list.next.id)           -- 34
   assertEqual(2, list.next.next.id)      -- 52
   assertEqual(1, list.next.next.next.id) -- 96
+
+  -- remove on mute
+  e:set {
+    mute = 1,
+  }
+  assertEqual(3, list.next.id)           -- 34
+  assertEqual(1, list.next.next.id)      -- 52
+  assertNil(list.next.next.next)
 end
---]]
 
 test.all()

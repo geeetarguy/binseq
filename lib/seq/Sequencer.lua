@@ -269,7 +269,8 @@ function private.insertInList(list, e)
     e.next = nil
   end
 
-  if t then
+  if e.mute == 0 then
+    -- not muted
     -- insert sorted
     local l = list
     while true do
