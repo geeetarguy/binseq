@@ -51,7 +51,15 @@ end
 --==========================================================  SONGS
 
 ------------------------------------------------------------  CREATE
-function lib:createSong(posid, name)
+function lib:getOrCreateSong(posid, name)
+  local s = self:getSong(posid)
+  if s then
+    if s.name ~= name then
+      s:set(name)
+    end
+    return s
+  end
+
   local stmt = self.create_song
   local p = seq.Song {posid = posid, name = name}
   p.posid = posid
@@ -265,6 +273,7 @@ end
 function lib:activatePattern(pattern_id, sequencer_id)
   -- not needed.
   -- self:deactivatePattern(pattern_id, sequencer_id)
+  assert(not self:activePattern(pattern_id, sequencer_id))
   local stmt = self.create_sequencer_pattern
   stmt:bind_names { pattern_id = pattern_id, sequencer_id = sequencer_id }
   stmt:step()
@@ -278,6 +287,13 @@ function lib:deactivatePattern(pattern_id, sequencer_id)
   stmt:reset()
 end
 
+function lib:activePattern(pattern_id, sequencer_id)
+  local stmt = self.read_sequencers_patterns
+  stmt:bind_names { pattern_id = pattern_id, sequencer_id = sequencer_id }
+  local row = stmt:first_row()
+  stmt:reset()
+  return row and true
+end
 ------------------------------------------------------------  READ
 
 function lib:hasSequencer(posid)
@@ -312,7 +328,7 @@ function lib:getSequencers(song_id)
   return function()
     local row = next_row(stmt)
     if row then
-      return private.patternFromRow(self, row)
+      return private.sequencerFromRow(self, row)
     else
       -- done
       stmt:reset()
@@ -586,6 +602,10 @@ function private:prepareDb(is_new)
 
   self.read_pattern_posid_by_sequencer_id = db:prepare [[
     SELECT patterns.posid FROM sequencers_patterns INNER JOIN patterns ON patterns.id = pattern_id WHERE sequencer_id = :sequencer_id;
+  ]]
+
+  self.read_sequencers_patterns = db:prepare [[
+    SELECT * FROM sequencers_patterns WHERE sequencer_id = :sequencer_id AND pattern_id = :pattern_id;
   ]]
 
   ------------------------------------------------------------  UPDATE

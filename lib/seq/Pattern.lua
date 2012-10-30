@@ -49,6 +49,14 @@ function lib:set(def)
   end
 end
 
+function lib:setSequencer(aseq)
+  self.seq = aseq
+  -- Schedule pattern events
+  for _, e in pairs(self.events) do
+    e:setSequencer(aseq)
+  end
+end
+
 function lib:save()
   -- Write event in database
   local db = self.db
@@ -73,6 +81,10 @@ function lib:getOrCreateEvent(posid)
   if not e then
     e = self.db:getOrCreateEvent(posid, self.id)
     self.events[posid] = e
+    if self.seq then
+      -- Schedule event
+      e:setSequencer(self.seq)
+    end
   end
   return e
 end

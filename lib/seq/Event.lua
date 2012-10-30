@@ -87,7 +87,12 @@ function lib:set(def)
     self:save()
   end
 
-  return need_schedule
+  if need_schedule then
+    local aseq = self.seq
+    if aseq then
+      aseq:schedule(self)
+    end
+  end
 end
 
 -- 0      Gs             Ep       Ep (ignored)

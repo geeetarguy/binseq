@@ -104,6 +104,22 @@ function should.getSequencer()
   assertEqual(p1.posid, p2.posid)
 end
 
+function should.getSequencers()
+  local db = seq.PresetDb(':memory')
+  -- posid, song_id
+  local s1 = db:getOrCreateSequencer(3, 1)
+  local s2 = db:getOrCreateSequencer(5, 1)
+  local list = {}
+  for s in db:getSequencers(1) do
+    table.insert(list, s.type)
+    table.insert(list, s.id)
+  end
+  assertValueEqual({
+    'seq.Sequencer', s1.id,
+    'seq.Sequencer', s2.id,
+  }, list)
+end
+
 function should.setActivePatternPosid()
   local db = seq.PresetDb(':memory')
   -- posid, song_id

@@ -27,7 +27,13 @@ setmetatable(lib, {
 })
 
 -- seq.Song(...)
-function lib.new(def)
+function lib.new(def, song_id, name)
+  if song_id then
+    local db_path = def
+    local db = seq.PresetDb(db_path)
+    return db:getOrCreateSong(song_id, name)
+  end
+    
   local self = def or {}
   -- Find pattern by posid
   self.patterns = {}
@@ -36,6 +42,8 @@ function lib.new(def)
   self.sequencers = {}
   -- Sequencers list
   self.sequencers_list = {}
+
+  setmetatable(self, lib)
 
   if self.db then
     -- load patterns
@@ -52,14 +60,14 @@ function lib.new(def)
     local list = self.sequencers_list
 
     for s in self.db:getSequencers(self.id) do
+      sequencers[s.posid] = s
       s.song = self
       s:loadPatterns()
-      sequencers[s.posid] = s
       table.insert(list, s)
     end
   end
 
-  return setmetatable(self, lib)
+  return self
 end
 
 function lib:getOrCreateSequencer(posid)
@@ -80,6 +88,7 @@ function lib:getOrCreatePattern(posid)
   local p = pat[posid]
   if not p then
     p = self.db:getOrCreatePattern(posid, self.id)
+    p.song = self
     pat[posid] = p
   end
   p:loadEvents()
@@ -114,21 +123,25 @@ end
 --================================================== Used for testing
 local gridToPosid = seq.Event.gridToPosid
 function lib.mock()
-  local db = seq.PresetDb(':memory')
-  local song = db:createSong(1, 'hello')
+  local db = seq.PresetDb ':memory'
+  local song = db:getOrCreateSong(1, 'hello')
   for row = 1,8 do
     for col = 1,8 do
       song:getOrCreatePattern(gridToPosid(row, col, 0))
     end
   end
 
-  for _, pat_id in ipairs {12, 15, 17, 1} do
-    -- Only fill 6 rows = 48 events
-    local pat = song:getOrCreatePattern(pat_id)
+  for _, pat_pos in ipairs {12, 15, 17, 1} do
+    -- Set 4 patterns with 48 events each
+    local pat = song:getOrCreatePattern(pat_pos)
     for row = 1,6 do
       for col = 1,8 do
         local posid = gridToPosid(row, col, 0)
         local e = pat:getOrCreateEvent(posid)
+        -- One event on three is not muted
+        if posid % 3 == 0 then
+          e:set { mute = 0 }
+        end
       end
     end
   end
@@ -140,6 +153,7 @@ function lib.mock()
     seq:enablePattern(gridToPosid(1, col, 0))
     seq:enablePattern(gridToPosid(2, col+1, 0))
   end
-  return song
+  -- Return a fresh copy like if it was queried from db
+  return db:getSong(song.id)
 end
 

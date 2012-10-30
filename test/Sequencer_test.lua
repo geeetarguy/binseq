@@ -7,84 +7,54 @@
 require 'lubyk'
 
 local should = test.Suite('seq.Sequencer')
+local mock = seq.Song.mock
 
 function should.autoLoad()
   local s = seq.Sequencer
   assertType('table', s)
 end
 
-function should.getEventCount()
-  local s = seq.Sequencer(':memory')
-  assertEqual(0, s:eventCount())
-end
-  
-function should.receiveNilOnMissingEvent()
-  local s = seq.Sequencer(':memory')
-  local e = s:getEvent(1)
-  assertNil(e)
-end
+function should.prepareListOnLoad()
+  local song = mock()
+  local s = song.sequencers_list[1]
 
-function should.createEvent()
-  local s = seq.Sequencer(':memory')
-  s:setEvent(1, {
-    position = 0,
-    velocity = 120,
-    note = 60,
-  })
-  local e = s:getEvent(1)
-  assertEqual('seq.Event', e.type)
-  assertEqual(1, e.id)
-end
+  local i = 0
+  local e = s.list.next
+  while e do
+    i = i + 1
+    e = e.next
+  end
 
-function should.updateEvent()
-  local s = seq.Sequencer(':memory')
-  s:setEvent(1, {
-    position = 0,
-    velocity = 120,
-    note = 60,
-  })
-
-  s:setEvent(1, {
-    note = 72,
-  })
-  local e = s:getEvent(1)
-  assertEqual(72, e.note)
-  assertEqual(120, e.velocity)
-end
-
-function should.setGlobalLoop()
-  local s = seq.Sequencer(':memory')
-  assertEqual(nil, s.pattern.global_loop)
-  s:setGlobalLoop(48)
-  assertEqual(48, s.pattern.global_loop)
-end
-
-function should.setGlobalStart()
-  local s = seq.Sequencer(':memory')
-  assertEqual(0, s.pattern.position)
-  s:setGlobalStart(48)
-  assertEqual(48, s.pattern.position)
+  -- 48 events, 1/3 are not muted
+  assertEqual(16, i)
 end
 
 function should.buildActiveList()
-  local s = seq.Sequencer(':memory')
-  s:setEvent(1, {
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  local p = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e = p:getOrCreateEvent(1)
+  e:set {
     position = 0,  -- events 0, 96, 192
     loop = 96,
-  })
+  }
 
-  s:setEvent(2, {
+  e = p:getOrCreateEvent(2)
+  e:set {
     position = 24, -- events 24, 72, 120
     loop = 48,
-  })
+  }
 
-  s:setEvent(3, {
+  e = p:getOrCreateEvent(3)
+  e:set {
     position = 0, -- events 0, 24, 48, 72, 96
     loop = 24,
-  })
+  }
 
-  local t = 8
-  local list = s:buildActiveList(t)
+  -- reading head is now at t == 8 (events at 8 are triggered)
+  aseq:move(8)
+  local list = aseq.list
 
   -- next trigger = event 2
   assertEqual(24, list.next.t)
@@ -96,9 +66,8 @@ function should.buildActiveList()
   assertEqual(96, list.next.next.next.t)
   assertEqual(1, list.next.next.next.id)
 
-  seq_debug = true
-  t = 25
-  local list = s:buildActiveList(t)
+  aseq:move(25)
+  list = aseq.list
 
   -- next trigger = event 3
   assertEqual(48, list.next.t)
@@ -108,16 +77,21 @@ function should.buildActiveList()
   assertEqual(96, list.next.next.next.t)
 end
 
-function should.storeTOnTrigger()
-  local s = seq.Sequencer(':memory')
-  assertEqual(0, s.t)
-  local e = s:setEvent(1, {
+function should.moveOnTrigger()
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  local p = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e = p:getOrCreateEvent(1)
+  e:set {
     position = 14,
-  })
-  assertEqual(0, s.t)
-  s:trigger(e)
-  assertEqual(14, s.t)
+  }
+  assertEqual(0, aseq.t)
+  aseq:trigger(e)
+  assertEqual(14, aseq.t)
 end
+
+--[[
 
 function should.rescheduleEventOnTrigger()
   local s = seq.Sequencer(':memory')
@@ -228,5 +202,6 @@ function should.rescheduleEventOnEditWithT()
   assertEqual(2, list.next.next.id)      -- 52
   assertEqual(1, list.next.next.next.id) -- 96
 end
+--]]
 
 test.all()

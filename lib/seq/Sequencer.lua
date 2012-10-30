@@ -62,6 +62,13 @@ end
 
 function lib:set(def)
   for k, v in pairs(def) do
+    if k == 'loop' then
+      if v > 0 then
+        self.loop_v = v
+      else
+        self.loop_v = nil
+      end
+    end
     self[k] = v
   end
 
@@ -85,18 +92,21 @@ function lib:delete()
 end
 
 function lib:enablePattern(posid)
-  local pat = self.song:getOrCreatePattern(posid)
-  self.patterns[posid] = pat
-  -- Schedule pattern events
-  for _, e in pairs(pat.events) do
-    e:setSequencer(self)
-  end
+  local pat = self:loadPattern(posid)
+  self.db:activatePattern(pat.id, self.id)
 end
 
 function lib:loadPatterns()
   for posid in self.db:getActivePatternPosids(self.id) do
-    self:enablePattern(posid)
+    self:loadPattern(posid)
   end
+end
+
+function lib:loadPattern(posid)
+  local pat = self.song:getOrCreatePattern(posid)
+  self.patterns[posid] = pat
+  pat:setSequencer(self)
+  return pat
 end
 
 function lib:allOff()
@@ -110,6 +120,23 @@ function lib:allOff()
   end
 end
 
+-- Change song position.
+function lib:move(t)
+  self.t  = t
+  -- Clear list
+  self.list = {}
+  local list = self.list
+  local Gs = self.position
+  local Gm = self.loop_v
+
+  -- schedule all active patterns
+  for _, pat in pairs(self.patterns) do
+    for _, e in pairs(pat.events) do
+      e:nextTrigger(t, Gs, Gm)
+      private.insertInList(list, e)
+    end
+  end
+end
 --[[
 
 function lib:addPattern(pat)
@@ -155,46 +182,6 @@ function lib:setGlobalStart(s)
   self:scheduleAll()
 end
 
--- Return a sorted linked list of active events given the current global
--- start and global loop settings.
-function lib:scheduleAll(tc)
-  local tc = tc or self.t
-  -- Clear list
-  self.list = {}
-  local list = self.list
-
-  local Gs = self.global_start
-  local Gm = self.global_loop
-  for _, e in ipairs(self.pattern.events) do
-    -- This sets e.t
-    e:nextTrigger(tc, Gs, Gm)
-    private.insertInList(list, e)
-    if seq_debug then
-      local l = list.next
-      while l do
-        l = l.next
-      end
-    end
-  end
-
-  return list
-end
-
-function lib:trigger(e, skip_schedule)
-  -- 1. Trigger event
-  if e.mute == 0 or e.off_t then
-    local f = self.playback
-    if f then
-      f(self, e)
-    end
-  end
-  -- Keep last trigger time to reschedule event on edit/create.
-  self.t = e.t
-  -- 2. Reschedule
-  if not skip_schedule then
-    self:schedule(e, true)
-  end
-end
 
 -- Start playback
 function lib:play(bpm)
@@ -244,9 +231,27 @@ function private:startThread()
   end
 end
 
+--]]
+
 function lib:schedule(e, not_now)
-  e:nextTrigger(self.t, self.global_start, self.global_loop, not_now)
+  e:nextTrigger(self.t, self.position, self.loop_v, not_now)
   private.insertInList(self.list, e)
+end
+
+function lib:trigger(e, skip_schedule)
+  -- 1. Trigger event
+  if e.mute == 0 or e.off_t then
+    local f = self.playback
+    if f then
+      f(self, e)
+    end
+  end
+  -- Keep last trigger time to reschedule event on edit/create.
+  self.t = e.t
+  -- 2. Reschedule
+  if not skip_schedule then
+    self:schedule(e, true)
+  end
 end
 
 function private.insertInList(list, e)
@@ -293,4 +298,3 @@ function private.insertInList(list, e)
     end
   end
 end
---]]
