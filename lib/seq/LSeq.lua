@@ -89,6 +89,41 @@ function lib:loadView(name, ...)
   self.pad:loadView(view, ...)
 end
 
+-- Select song
+top_button[1] = function(self, row, col)
+  self:loadView('Songs')
+end
+
+-- Show mixer
+top_button[2] = function(self, row, col)
+  self:loadView('Pattern', 'mixer')
+end
+
+-- Show pattern select
+col_button[1] = function(self, row, col)
+  self:loadView('Pattern', 'pattern')
+end
+
+function lib:release(row, col)
+  if row == 1 and col == 9 then
+    -- End of pattern select
+    self:loadView(self.song.last_name)
+  end
+end
+
+-- Default actions when not implemented in view.
+function lib:press(row, col)
+  local f
+  if row == 0 then
+    f = top_button[col]
+  elseif col == 9 then
+    f = col_button[row]
+  end
+  if f then
+    f(self, row, col)
+  end
+end
+
 --[[
 function lib:selectSequencer(posid)
   -- current view
@@ -221,20 +256,6 @@ col_button[3] = private.seqButton
 -- function private:recButton(row, col)
 --   self:loadView('Rec')
 -- end
--- top_button[8] = private.mainButton
--- Default actions when not implemented in view.
-function lib:press(row, col)
-  local f
-  if row == 0 then
-    f = top_button[col]
-  elseif col == 9 then
-    f = col_button[row]
-  end
-  if f then
-    f(self, row, col)
-  end
-end
-
 -- Default actions when not implemented in view.
 function lib:release(row, col)
 end

@@ -82,13 +82,19 @@ end
 function lib:press(row, col)
   local f
   if row == 0 then
-    f = top_button[col]
+    if col == 8 or col == 1 then
+      -- pass to LSeq
+    else
+      -- ignore here
+      return
+    end
   elseif col == 9 then
-    f = col_button[row]
+    -- pass to LSeq
   else
     -- press on grid
     f = private.pressGrid
   end
+
   if f then
     f(self, row, col)
   else

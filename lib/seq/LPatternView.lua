@@ -58,7 +58,8 @@ function lib.new(lseq, song)
 end
 
 -- Display view content (called on load)
-function lib:display()
+function lib:display(mode)
+  self.mode = mode or 'mixer'
   local pad  = self.pad
   local song = self.song
   local parts = self.patterns
@@ -68,8 +69,12 @@ function lib:display()
   pad:prepare()
   pad:clear()
   -- Display patterns
-  -- Turn on 'pattern' button
-  pad:button(0, 6):setState('Green')
+  -- Turn on 'sequencer' buttons
+  for col=1,8 do
+    if song.sequencers[col] then
+      pad:button(0, col):setState('Green')
+    end
+  end
 
   for row=1,8 do
     for col=1,8 do
@@ -86,10 +91,20 @@ function lib:display()
   pad:commit()
 end
 
+function lib:release(row, col)
+  if self.mode == 'pattern' then
+    self.lseq:release(row, col)
+  end
+end
+
 function lib:press(row, col)
   local f
   if row == 0 then
-    f = top_button[col]
+    if self.mode == 'pattern' then
+      f = private.sequencerPress
+    else
+      f = top_button[col]
+    end
   elseif col == 9 then
     f = col_button[row]
   else
@@ -185,3 +200,18 @@ function private:pressGrid(row, col)
     pad:button(row, col):setState(PART_STATE[4])
   end
 end
+
+function private:sequencerPress(row, col)
+  local song = self.song
+  local aseq = song.sequencers[col]
+  if aseq then
+    -- remove
+    aseq:delete()
+    song.sequencers[col] = nil
+    self.pad:button(0, col):setState('Off')
+  else
+    song:getOrCreateSequencer(col)
+    self.pad:button(0, col):setState('Green')
+  end
+end
+
