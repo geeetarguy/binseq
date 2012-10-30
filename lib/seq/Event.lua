@@ -52,10 +52,10 @@ function lib:setSequencer(aseq)
       -- play note Off
       self.seq:trigger(self, true)
     end
-    self.seq:removeFromList(self)
+    self.seq:removeEvent(self)
   end
   self.seq = aseq
-  if self.mute ~= 1 then
+  if aseq and self.mute ~= 1 then
     aseq:schedule(self)
   end
 end

@@ -49,6 +49,7 @@ function lib:set(def)
   end
 end
 
+-- aseq can be nil
 function lib:setSequencer(aseq)
   self.seq = aseq
   -- Schedule pattern events

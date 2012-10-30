@@ -254,4 +254,65 @@ function should.rescheduleEventOnEditWithT()
   assertNil(list.next.next.next)
 end
 
+function should.addRemoveEventsOnPatternEnable()
+  local song = seq.Song(':memory', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  aseq:move(20)
+
+  local list = aseq.list
+  local pat1 = song:getOrCreatePattern(1)
+  local e
+  e = pat1:getOrCreateEvent(1)
+  e:set {
+    position = 0,  -- events 0, 96, 192
+    loop = 96,
+    mute = 0,
+  }
+
+  e = pat1:getOrCreateEvent(2)
+  e:set {
+    position = 24, -- events 24, 72, 120
+    loop = 48,
+    mute = 0,
+  }
+
+  -- No pattern enabled yet
+  assertNil(list.next)
+
+  aseq:enablePattern(1)
+  assertEqual(2, list.next.id)      -- 24
+  assertEqual(1, list.next.next.id) -- 96
+  assertNil(list.next.next.next)
+
+  aseq:disablePattern(1)
+  assertNil(list.next)
+
+  local pat2 = song:getOrCreatePattern(2)
+  e = pat2:getOrCreateEvent(1)
+  e:set {
+    position = 10, -- events 10, 34, 58, 82, 106
+    loop = 24,
+    mute = 0,
+  }
+
+  -- No pattern enabled yet
+  assertNil(list.next)
+
+  -- Enable pattern 1
+  aseq:enablePattern(1)
+  assertEqual(2, list.next.id)      -- 24
+  assertEqual(1, list.next.next.id) -- 96
+  assertNil(list.next.next.next)
+
+  -- Enable pattern 1 & 2
+  aseq:enablePattern(2)
+  assertEqual(2, list.next.id)           -- 24
+  assertEqual(24, list.next.t)
+  assertEqual(3, list.next.next.id)      -- 34
+  assertEqual(34, list.next.next.t)
+  assertEqual(1, list.next.next.next.id) -- 96
+  assertEqual(96, list.next.next.next.t)
+  assertNil(list.next.next.next.next)
+end
+
 test.all()

@@ -96,6 +96,14 @@ function lib:enablePattern(posid)
   self.db:activatePattern(pat.id, self.id)
 end
 
+function lib:disablePattern(posid)
+  local pat = self.patterns[posid]
+  if pat then
+    self.db:deactivatePattern(pat.id, self.id)
+    pat:setSequencer(nil)
+  end
+end
+
 function lib:loadPatterns()
   for posid in self.db:getActivePatternPosids(self.id) do
     self:loadPattern(posid)
@@ -251,6 +259,22 @@ function lib:trigger(e, skip_schedule)
   -- 2. Reschedule
   if not skip_schedule then
     self:schedule(e, true)
+  end
+end
+
+function lib:removeEvent(e)
+  -- Remove from previous list
+  local p = e.prev
+  local n = e.next
+
+  if p then
+    p.next = n
+    e.prev = nil
+  end
+
+  if n then
+    n.prev = p
+    e.next = nil
   end
 end
 
