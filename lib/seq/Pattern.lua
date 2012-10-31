@@ -56,13 +56,20 @@ function lib:setSequencer(aseq)
   for _, e in pairs(self.events) do
     e:setSequencer(aseq)
   end
+  if not aseq then
+    -- write in db
+    self.sequencer_id = nil
+    self:save()
+  else
+    self:set {sequencer_id = aseq.id}
+  end
 end
 
 function lib:save()
   -- Write event in database
   local db = self.db
   assert(db, 'Cannot save pattern without database')
-  db:setSequencer(self)
+  db:setPattern(self)
 end
 
 function lib:loadEvents()
@@ -72,6 +79,7 @@ function lib:loadEvents()
 
     for e in self.db:getEvents(self.id) do
       events[e.posid] = e
+      e.pattern = self
     end
     self.loaded = true
   end
@@ -82,6 +90,7 @@ function lib:getOrCreateEvent(posid)
   if not e then
     e = self.db:getOrCreateEvent(posid, self.id)
     self.events[posid] = e
+    e.pattern = self
     if self.seq then
       -- Schedule event
       e:setSequencer(self.seq)

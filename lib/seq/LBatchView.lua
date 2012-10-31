@@ -82,11 +82,11 @@ setmetatable(lib, {
 })
 
 -- seq.LBatchView(...)
-function lib.new(lseq, seq)
+function lib.new(lseq, song)
   local self = {
     lseq = lseq,
     pad = lseq.pad,
-    seq = seq,
+    song = song,
     key = 'note',
     -- Direct access to bit values (ex: bits[row][col])
     bits = {},
@@ -109,21 +109,17 @@ function lib:display(key, page)
   self.key = key
   self.last_key = nil
   local pad = self.pad
-  local seq = self.seq
+  local song = self.song
   local events = self.events
   -- Clear
   pad:prepare()
   pad:clear()
-  -- Turn on mixer button
-  pad:button(0, 8):setState('Amber')
-  -- Display pagination buttons
-  private.setPageButtons(self, page)
 
   -- Display events
   local row_by_id = {}
   self.row_by_id = row_by_id
 
-  local part_events = seq.pattern.events
+  local part_events = song.edit_pattern.events
   for row=1,8 do
     local posid = rowToPosid(row, page)
     local e = part_events[posid]
@@ -137,7 +133,6 @@ function lib:display(key, page)
     end
   end
   pad:button(KEY_TO_ROW[key], 9):setState('Amber')
-  self.lseq:showSeqButtons()
   pad:commit()
 end
 
@@ -174,7 +169,6 @@ function lib:editEvent(e)
 end
 lib.eventChanged = lib.editEvent
 
-
 function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
@@ -191,41 +185,24 @@ function lib:press(row, col)
   end
 end
 
-function private:loadMain(row, col)
-  self.lseq:loadView('Main')
-end
-top_button[8] = private.loadMain
-
-function private:changePage(row, col)
-  local p = self.page
-  local b = self.page_bits[col]
-  if b == 0 then
-    self.page_bits[col] = 1
-    p = p + PAGE_BITS[col]
-  else
-    self.page_bits[col] = 0
-    p = p - PAGE_BITS[col]
-  end
-  self:display(self.key, p)
-end
-for i=1,3 do
-  top_button[i] = private.changePage
-end
-
 function private:pressGrid(row, col)
+  local song = self.song
   local e = self.events[row]
   if not e then
     -- Copy last event
     -- Id is current page
     local posid = rowToPosid(row, self.page)
+    -- new
+    e = song.edit_pattern:getOrCreateEvent(posid)
     if self.last_e then
-      e = self.seq:setEvent(posid, self.last_e)
-      e.mute = 1
-    else
-      -- new
-      e = self.seq:setEvent(posid, seq.Event())
+      -- copy
+      e:set(self.last_e)
     end
-    e[self.key] = 0
+    if key ~= 'mute' then
+      e:set {
+        [self.key] = 0,
+      }
+    end
     -- Reload content
     self:editEvent(e)
   end
@@ -237,40 +214,3 @@ function private:pressGrid(row, col)
   self.last_e = e
 end
 
--- Last column buttons
-function private:batchButton(row, col)
-  local key = PARAMS[row]
-  local curr = self.key
-  if key == curr then
-    local last = self.last_key
-    -- load last view
-    if self.last_key then
-      self.lseq:loadView('Batch', self.last_key)
-      self.last_key = curr
-    else
-      self.lseq:loadView('Main')
-    end
-  else
-    self.lseq:loadView('Batch', key)
-    self.last_key = curr
-  end
-end
-for i, key in ipairs(PARAMS) do
-  if key ~= '' then
-    col_button[i] = private.batchButton
-  end
-end
-
-function private:setPageButtons(page)
-  local v = page
-  local pbits = {}
-  local pad = self.pad
-  self.page_bits = pbits
-  for i, r in ipairs(PAGE_BITS) do
-    local b = math.floor(v / r)
-    v = v - r * b
-    pbits[i] = b
-    pad:button(0, i):setState(BIT_STATE[b+1])
-  end
-  self.page = page
-end

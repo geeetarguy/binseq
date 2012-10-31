@@ -115,11 +115,11 @@ local GLOBAL_LOOP_BIT_STATE = {
 
 local EVENT_LIST = {
   'Off',
-  'LightGreen',
-  'LightAmber', -- loaded
+  'LightAmber',
+  'LightGreen', -- loaded
   '', -- Never occurs (cannot have NoteOn of inexistant event)
-  'Green', -- NoteOn
-  'Amber', -- NoteOn on loaded
+  'Amber', -- NoteOn
+  'Green', -- NoteOn on loaded
   'LightRed', -- muted
 }
 --=============================================== PUBLIC
@@ -130,11 +130,11 @@ setmetatable(lib, {
 })
 
 -- seq.LMainView(...)
-function lib.new(lseq, seq)
+function lib.new(lseq, song)
   local self = {
     lseq = lseq,
-    pad = lseq.pad,
-    seq = seq,
+    pad  = lseq.pad,
+    song = song,
     -- direct access to buttons (ex: btns.position[col])
     btns = {},
     -- direct access to bit values (ex: bits.position[col])
@@ -149,17 +149,17 @@ end
 function lib:display()
 
   local pad = self.pad
-  local seq = self.seq
+  local song = self.song
   local event = self.event
   local page = self.page
   -- Clear
   pad:prepare()
   pad:clear()
   -- Display events
-  -- Turn on mixer button
-  pad:button(0, 8):setState('Green')
+  -- Turn on main button
+  pad:button(2, 9):setState('Amber')
 
-  local events = seq.pattern.events
+  local events = song.edit_pattern.events
 
   for row=1,3 do
     for col=1,8 do
@@ -171,7 +171,6 @@ function lib:display()
     end
   end
 
-  self.lseq:showSeqButtons()
   -- editEvent also does a prepare/commit so we must commit before
   pad:commit()
 
@@ -207,10 +206,8 @@ end
 
 function lib:selectNote(row, col)
   local posid = gridToPosid(row, col, self.page)
-  local e = self.seq:getEvent(posid)
-  if not e then
-    e = self.seq.pattern:createEvent(posid)
-  end
+  local e = self.song.edit_pattern:getOrCreateEvent(posid)
+
   if self.copy_on then
     if self.event then
       e = self.seq:setEvent(posid, self.event)
@@ -258,18 +255,8 @@ function lib:editEvent(e, row, col)
   self.pad:prepare()
     self:setEventState(e)
     -- Load event state in rows 4 to 8
-    -- position is at row ROW_INDEX.position
-    private.loadParam(self, 'position', e)
     for _, key in ipairs(PARAMS) do
-      if key == 'loop' then
-        local seq = self.seq
-        if seq.global_loop then
-          -- Dispaly global loop setting instead
-          private.loadParam(self, key, nil, seq.global_loop, GLOBAL_LOOP_BIT_STATE)
-        else
-          private.loadParam(self, key, e)
-        end
-      elseif key ~= '' then
+      if key ~= '' then
         private.loadParam(self, key, e)
       end
     end
@@ -277,6 +264,10 @@ function lib:editEvent(e, row, col)
 end
 
 function lib:setEventState(e)
+  local pat = e.pattern
+  if pat ~= self.song.edit_pattern then
+    return
+  end
   local posid = e.posid
   local row, col = posidToGrid(posid, self.page, 3)
   if not row then
@@ -360,9 +351,9 @@ function private:setParam(key, row, col, e, states)
   if type(r) == 'string' then
     -- special operation
     if r == 'mute' then
-      self.event = seq:setEvent(e.posid, {
+      e:set {
         mute = e.mute == 1 and 0 or 1
-      })
+      }
       -- reload event
       local posid = e.posid
       self:editEvent(e, row, col)
@@ -391,9 +382,9 @@ function private:setParam(key, row, col, e, states)
     --   -- update global loop
     --   seq:setGlobalLoop(p + b * r)
     -- else
-      self.event = seq:setEvent(e.posid, {
+      e:set {
         [key] = p + b * r,
-      })
+      }
     --end
   else
     b = 0

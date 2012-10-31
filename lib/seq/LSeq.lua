@@ -37,7 +37,7 @@ function lib.new(name, db_path)
     seq_bits = {},
     selected_id  = 1,
     selected_seq = nil,
-    db = seq.PresetDb(db_path or os.getenv('HOME') .. '/Documents/' .. name .. '.db'),
+    db = seq.PresetDb(db_path or name .. '.db'),
   }
 
   setmetatable(self, lib)
@@ -50,28 +50,54 @@ end
 
 function lib:loadSong(posid)
   local song = self.db:getOrCreateSong(posid)
-  local view_name
-  if self.song then
-    view_name = self.song.view and self.song.view.name or 'Pattern'
-  else
-  end
-  view_name = 'Home'
   self.song = song
+
   -- Prepare to be used with Launchpad views.
   song.views = {}
+  local seq
+  for _, s in pairs(song.sequencers) do
+    if not seq then
+      seq = s
+    end
+    s.playback = self.playback
+  end
 
-  self:loadView(view_name)
+  if not seq then
+    -- Create 1
+    seq = self.song:getOrCreateSequencer(1)
+    seq.playback = self.playback
+  end
+
+  local pattern
+  for k, p in pairs(song.patterns) do
+    pattern = p
+    break
+  end
+
+  if not pattern then
+    pattern = self.song:getOrCreatePattern(1)
+    seq:enablePattern(1)
+  end
+  song.edit_pattern = pattern
+
+  self:loadView 'Home'
 end
 
-function lib:loadView(name, ...)
+function lib:loadView(name, key)
   local song = self.song
 
   --if name ~= 'Pattern' and not song.edit_pattern then
   --  return -- refuse to leave pattern page
   --end
 
-  if song.view then
-    song.last_name = song.view.name
+  if self.view then
+    if name == self.view.name and key == self.view.key then
+      -- load last
+      self:loadView(self.last_name or 'Home', self.last_key)
+      return
+    end
+    self.last_name = self.view.name
+    self.last_key = self.view.key
   end
 
   local view = song.views[name]
@@ -85,29 +111,36 @@ function lib:loadView(name, ...)
     end
   end
 
-  song.view = view
-  self.pad:loadView(view, ...)
+  self.view = view
+  self.pad:loadView(view, key)
 end
 
--- Select song
-top_button[1] = function(self, row, col)
-  self:loadView('Songs')
+function lib:reScheduleAll(t)
+  for _, aseq in ipairs(self.song.sequencers) do
+    aseq:move(t)
+  end
 end
 
--- Show mixer
-top_button[2] = function(self, row, col)
-  self:loadView('Pattern', 'mixer')
-end
-
--- Show pattern select
-col_button[1] = function(self, row, col)
-  self:loadView('Pattern', 'pattern')
+function lib:trigger(t)
+  for _, aseq in ipairs(self.song.sequencers) do
+    aseq.t = t
+    list = aseq.list
+    local e = list.next
+    while e and e.t <= t do
+      aseq:trigger(e)
+      e = list.next
+    end
+  end
 end
 
 function lib:release(row, col)
   if row == 1 and col == 9 then
     -- End of pattern select
-    self:loadView(self.song.last_name)
+    local last, key = self.last_name, self.last_key
+    self:loadView(last, key)
+    -- Do not change last
+    self.last_name = self.plast
+    self.last_key = self.pkey
   end
 end
 
@@ -121,6 +154,41 @@ function lib:press(row, col)
   end
   if f then
     f(self, row, col)
+  end
+end
+
+--=============================================== TOP BUTTONS
+-- Select song
+top_button[1] = function(self, row, col)
+  self:loadView('Songs')
+end
+
+-- Show mixer
+top_button[8] = function(self, row, col)
+  self:loadView('Pattern', 'mixer')
+end
+
+--=============================================== COLUMN BUTTONS
+-- Show pattern select
+col_button[1] = function(self, row, col)
+  -- store previous last
+  self.plast, self.pkey = self.last_name, self.last_key
+  self:loadView('Pattern', 'pattern')
+end
+
+col_button[2] = function(self, row, col)
+  self:loadView('Main')
+end
+
+col_button[3] = function(self, row, col)
+  self:loadView('Rec')
+end
+
+for i, key in ipairs(PARAMS) do
+  if key ~= '' then
+    col_button[i] = function(self, row, col)
+      self:loadView('Batch', key)
+    end
   end
 end
 
@@ -196,26 +264,6 @@ function lib:showSeqButtons()
 end
 
 
-function lib:trigger(t)
-  for _, aseq in ipairs(self.seq_list) do
-    aseq.t = t
-    list = aseq.list
-    local e = list.next
-    while e and e.t <= t do
-      aseq:trigger(e)
-      e = list.next
-    end
-  end
-end
-
-function lib:reScheduleAll(t)
-  for _, aseq in ipairs(self.seq_list) do
-    if aseq.pattern then
-      aseq:buildActiveList(t)
-    end
-  end
-end
-
 -- Last column buttons
 function private:batchButton(row, col)
   local key = PARAMS[row]
@@ -278,6 +326,11 @@ function private:setupMidi()
     -- Playback function
     -- Important to trigger so that NoteOff is registered.
     midiout:send(e:trigger(aseq.channel))
+    local view = self.view
+    local f = view.setEventState
+    if f then
+      f(view, e)
+    end
   end
 
   local midiin = midi.In()

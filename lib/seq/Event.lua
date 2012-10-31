@@ -69,6 +69,7 @@ function lib:set(def)
     for _, key in ipairs(COPY_KEYS) do
       self[key] = def[key]
     end
+    self.mute = 1
   else
     for key, value in pairs(def) do
       if key == 'length' then

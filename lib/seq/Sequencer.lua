@@ -141,7 +141,9 @@ function lib:move(t)
   for _, pat in pairs(self.patterns) do
     for _, e in pairs(pat.events) do
       e:nextTrigger(t, Gs, Gm)
-      private.insertInList(list, e)
+      if e.t then
+        private.insertInList(list, e)
+      end
     end
   end
 end

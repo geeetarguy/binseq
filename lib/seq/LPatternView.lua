@@ -28,9 +28,9 @@ local PARAMS      = m.PARAMS
 local PART_STATE = {
   'Off',        -- no preset
   'LightAmber', -- has preset
-  'Green',      -- loaded
-  'Green',      -- loaded with auto-save
-  'Red',        -- ready to delete
+  'LightGreen', -- active or edited
+  'Amber',      -- + NoteOn
+  'Green',      -- + NoteOn
 }
 
 --=============================================== PUBLIC
@@ -58,8 +58,8 @@ function lib.new(lseq, song)
 end
 
 -- Display view content (called on load)
-function lib:display(mode)
-  self.mode = mode or 'mixer'
+function lib:display(key)
+  self.key = key or 'mixer'
   local pad  = self.pad
   local song = self.song
   local parts = self.patterns
@@ -68,6 +68,7 @@ function lib:display(mode)
   -- Clear
   pad:prepare()
   pad:clear()
+  self.pad:button(0, 4):setState(self.toggle and 'Green' or 'Off')
   -- Display patterns
   -- Turn on 'sequencer' buttons
   for col=1,8 do
@@ -75,16 +76,18 @@ function lib:display(mode)
       pad:button(0, col):setState('Green')
     end
   end
+  if key == 'pattern' then
+    pad:button(1, 9):setState('Amber')
+  else
+    pad:button(0, 8):setState('Amber')
+  end
 
   for row=1,8 do
     for col=1,8 do
       local posid = gridToPosid(row, col, page)
-      if parts[posid] then
-        if posid == curr then
-          pad:button(row, col):setState(PART_STATE[4])
-        else
-          pad:button(row, col):setState(PART_STATE[2])
-        end
+      local pat = parts[posid]
+      if pat then
+        private.showButtonState(self, pat, row, col)
       end
     end
   end
@@ -92,15 +95,18 @@ function lib:display(mode)
 end
 
 function lib:release(row, col)
-  if self.mode == 'pattern' then
+  if self.key == 'pattern' then
     self.lseq:release(row, col)
+  end
+  if self.toggle and row > 0 and col < 9 then
+    self:press(row, col)
   end
 end
 
 function lib:press(row, col)
   local f
   if row == 0 then
-    if self.mode == 'pattern' then
+    if self.key == 'pattern' then
       f = private.sequencerPress
     else
       f = top_button[col]
@@ -118,13 +124,15 @@ function lib:press(row, col)
   end
 end
 
-function private:loadMain(row, col)
-  self.lseq:loadView('Main')
+function lib:setEventState(e)
+  local pat = e.pattern
+  local posid = pat.posid
+  private.showButtonState(self, pat, nil, nil, e)
 end
-top_button[8] = private.loadMain
 
-function private:copyDelPart()
-  local row, col = 0, 5
+--=============================================== TOP BUTTONS
+-- Copy/Del pattern
+top_button[5] = function(self, row, col)
   if self.copy_on then
     self.copy_on = false
     self.del_on = true
@@ -138,66 +146,41 @@ function private:copyDelPart()
     self.pad:button(row, col):setState('Green')
   end
 end
-top_button[5] = private.copyDelPart
 
+-- Toggle playback mode
+top_button[4] = function(self, row, col)
+  self.toggle = not self.toggle
+  self.pad:button(row, col):setState(self.toggle and 'Green' or 'Off')
+end
+
+--=============================================== GRID
 function private:pressGrid(row, col)
   local pad = self.pad
-  local seq = self.seq
+  local song = self.song
   local posid = gridToPosid(row, col, self.page)
-  -- Unselect old
-  local curr = (seq.pattern or {}).posid
-  if curr then
-    local cr, cc = posidToGrid(curr, self.page)
 
-    if cr then
-      pad:button(cr, cc):setState(PART_STATE[2])
+  if self.key == 'mixer' then
+    -- enable patterns for sequencer playback
+    local pat = song.patterns[posid]
+    if pat then
+      if pat.seq then
+        pat:setSequencer(nil)
+      else
+        -- Find sequencer for this pattern
+        private.assignSequencer(self, song, pat, col)
+      end
+      private.showButtonState(self, pat, row, col)
     end
-  end
-
-  if self.copy_on then
-    if posid ~= seq.pattern.posid then
-      -- copy current pattern to given location
-      seq.db:copyPattern(seq.pattern, posid)
-    end
-    self.copy_on = false
-    pad:button(0, 5):setState('Off')
-    pad:button(row, col):setState(PART_STATE[2])
-    return
-  elseif self.del_on == posid then
-    -- delete
-    local p = seq.db:getPattern(posid)
-    -- FIXME: preset views in other sequencers should be notified
-    p:delete()
-    self.del_on = nil
-    self.pad:button(0, 5):setState('Off')
-    self.patterns[p.posid] = nil
-    if p.posid ~= (self.seq.pattern or {}).posid then
-      pad:button(row, col):setState(PART_STATE[1])
-    else
-      pad:button(row, col):setState(PART_STATE[1])
-      self.seq:selectPattern(1)
-      self.patterns[1] = true
-    end
-    return
-  elseif self.del_on then
-    if seq.db:hasPattern(posid) then
-      self.del_on = posid
-      pad:button(row, col):setState(PART_STATE[5])
-    end
-    return
-  end
-
-  local cposid = (self.seq.pattern or {}).posid
-  if cposid == posid then
-    -- turn off
-    self.seq:selectPattern(nil)
-    self.patterns[posid] = false
-    pad:button(row, col):setState(PART_STATE[2])
   else
-    -- Change pattern (creates new if needed)
-    self.seq:selectPattern(posid)
-    self.patterns[posid] = true
-    pad:button(row, col):setState(PART_STATE[4])
+    -- choose pattern to edit
+    local pat = song:getOrCreatePattern(posid)
+    local last_pat = song.edit_pattern
+    song.edit_pattern = pat
+
+    if last_pat then
+      private.showButtonState(self, last_pat)
+    end
+    private.showButtonState(self, pat, row, col)
   end
 end
 
@@ -210,8 +193,54 @@ function private:sequencerPress(row, col)
     song.sequencers[col] = nil
     self.pad:button(0, col):setState('Off')
   else
-    song:getOrCreateSequencer(col)
+    local aseq = song:getOrCreateSequencer(col)
+    aseq.playback = self.lseq.playback
+
+    for _, pat in pairs(song.patterns) do
+      if pat.seq then
+        private.assignSequencer(self, song, pat)
+      end
+    end
     self.pad:button(0, col):setState('Green')
   end
 end
 
+function private:showButtonState(pat, row, col, e)
+  if not row then
+    row, col = posidToGrid(pat.posid, self.page)
+    if not row then
+      return
+    end
+  end
+  local b
+  if self.key == 'mixer' then
+    b = pat.seq and 3 or 2
+  else
+    b = self.song.edit_pattern == pat and 3 or 2
+  end
+  if e and e.off_t then
+    -- + NoteOn
+    b = b + 2
+  end
+  self.pad:button(row, col):setState(PART_STATE[b])
+end
+
+
+function private:assignSequencer(song, pat, col)
+  if not col then
+    local p = math.floor(pat.posid - 1 / 64)
+    local r, c = posidToGrid(pat.posid, p)
+    col = c
+  end
+
+  local seq
+  for i=col,1,-1 do
+    seq = song.sequencers[i]
+    if seq then
+      break
+    end
+  end
+  if seq then
+    pat:setSequencer(seq)
+  end
+end

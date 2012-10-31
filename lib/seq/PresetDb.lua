@@ -62,14 +62,7 @@ function lib:getOrCreateSong(posid, name)
   end
 
   local stmt = self.create_song
-  if not name then
-    local s = ''
-    for i=1,21 do
-      s = s .. string.char(60 + math.random(64))
-    end
-    name = s
-  end
-  local p = seq.Song {posid = posid, name = name}
+  local p = seq.Song {posid = posid, name = name or ''}
   p.posid = posid
   p.db = self
   stmt:bind_names(p)
@@ -530,20 +523,16 @@ function private:prepareDb(is_new)
   --==========================================================  Pattern
   if is_new then
     db:exec [[
-      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER);
+      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, sequencer_id INTEGER, posid INTEGER);
       CREATE UNIQUE INDEX patterns_idx    ON patterns(id);
       CREATE INDEX patterns_song_idx      ON patterns(song_id);
       CREATE INDEX patterns_song_posidx ON patterns(posid, song_id);
-
-      CREATE TABLE sequencers_patterns (sequencer_id INTEGER, pattern_id INTEGER);
-      CREATE INDEX sequencers_patterns_sequencer_idx ON sequencers_patterns(sequencer_id);
-      CREATE INDEX sequencers_patterns_pattern_idx ON sequencers_patterns(pattern_id);
     ]]
   end
 
   ------------------------------------------------------------  CREATE
   self.create_pattern = db:prepare [[
-    INSERT INTO patterns VALUES (NULL, :song_id, :posid);
+    INSERT INTO patterns VALUES (NULL, :sequencer_id, :song_id, :posid);
   ]]
 
   ------------------------------------------------------------  READ
@@ -561,14 +550,13 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_pattern = db:prepare [[
-    UPDATE patterns SET song_id = :song_id, posid = :posid WHERE id = :id;
+    UPDATE patterns SET song_id = :song_id, sequencer_id = :sequencer_id, posid = :posid WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
   self.delete_pattern = {
     db:prepare 'DELETE FROM patterns WHERE id = :id;',
     db:prepare 'DELETE FROM events WHERE pattern_id = :id;',
-    db:prepare 'DELETE FROM sequencers_patterns WHERE pattern_id = :id;',
     nil -- avoid second argument from db:prepare
   }
   
@@ -591,10 +579,6 @@ function private:prepareDb(is_new)
     INSERT INTO sequencers VALUES (NULL, :song_id, :posid, :note, :velocity, :length, :position, :loop, :channel);
   ]]
 
-  self.create_sequencer_pattern = db:prepare [[
-    INSERT INTO sequencers_patterns VALUES (:sequencer_id, :pattern_id);
-  ]]
-
   ------------------------------------------------------------  READ
   self.read_sequencer_by_id = db:prepare [[
     SELECT * FROM sequencers WHERE id = :id;
@@ -609,11 +593,7 @@ function private:prepareDb(is_new)
   ]]
 
   self.read_pattern_posid_by_sequencer_id = db:prepare [[
-    SELECT patterns.posid FROM sequencers_patterns INNER JOIN patterns ON patterns.id = pattern_id WHERE sequencer_id = :sequencer_id;
-  ]]
-
-  self.read_sequencers_patterns = db:prepare [[
-    SELECT * FROM sequencers_patterns WHERE sequencer_id = :sequencer_id AND pattern_id = :pattern_id;
+    SELECT posid FROM patterns WHERE sequencer_id = :sequencer_id;
   ]]
 
   ------------------------------------------------------------  UPDATE
@@ -624,13 +604,9 @@ function private:prepareDb(is_new)
   ------------------------------------------------------------  DELETE
   self.delete_sequencer = {
     db:prepare 'DELETE FROM sequencers          WHERE id = :id;',
-    db:prepare 'DELETE FROM sequencers_patterns WHERE sequencer_id = :id;',
+    db:prepare 'UPDATE patterns SET sequencer_id = NULL WHERE sequencer_id = :id;',
     nil, -- avoid second argument from db:prepare
   }
-
-  self.delete_sequencer_pattern = db:prepare [[
-    DELETE FROM sequencers_patterns WHERE sequencer_id = :sequencer_id AND pattern_id = :pattern_id;
-  ]]
 
   --==========================================================  Song
   -- note, velocity, length, position, loop are global settings
@@ -677,6 +653,7 @@ function private:patternFromRow(row)
   local p = seq.Pattern {
     id           = row[1],
     song_id      = row[2],
+    sequencer_id = row[2],
     posid        = row[3],
   }
   -- We only set db now so that 'set' does not save.
