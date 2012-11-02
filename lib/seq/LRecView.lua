@@ -99,6 +99,10 @@ function lib:display()
 end
 
 function lib:setEventState(e)
+  local pat = e.pattern
+  if pat ~= self.song.edit_pattern then
+    return
+  end
   local posid = e.posid
   local row, col = posidToGrid(posid, self.page, 8)
   if not row then

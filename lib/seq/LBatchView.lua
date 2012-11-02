@@ -138,6 +138,10 @@ end
 
 -- mandatory function for view
 function lib:setEventState(e)
+  local pat = e.pattern
+  if pat ~= self.song.edit_pattern then
+    return
+  end
   local posid = e.posid
   local row = self.row_by_id[posid]
   -- Bit value for this element

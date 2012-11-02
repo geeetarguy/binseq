@@ -30,6 +30,7 @@ local BIT_STATE = {
   'Green',
   'Amber',
   'Red',
+  'LightRed',
 }
 
 --=============================================== PUBLIC

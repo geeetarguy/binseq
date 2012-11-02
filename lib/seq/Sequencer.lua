@@ -93,13 +93,12 @@ end
 
 function lib:enablePattern(posid)
   local pat = self:loadPattern(posid)
-  self.db:activatePattern(pat.id, self.id)
+  pat:setSequencer(self)
 end
 
 function lib:disablePattern(posid)
   local pat = self.patterns[posid]
   if pat then
-    self.db:deactivatePattern(pat.id, self.id)
     pat:setSequencer(nil)
   end
 end
@@ -245,7 +244,9 @@ end
 
 function lib:schedule(e, not_now)
   e:nextTrigger(self.t, self.position, self.loop_v, not_now)
-  private.insertInList(self.list, e)
+  if e.t then
+    private.insertInList(self.list, e)
+  end
 end
 
 function lib:trigger(e, skip_schedule)

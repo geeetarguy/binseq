@@ -120,34 +120,16 @@ function should.getSequencers()
   }, list)
 end
 
-function should.setActivePatternPosid()
+function should.saveSequencerId()
   local db = seq.PresetDb(':memory')
   -- posid, song_id
   local s = db:getOrCreateSequencer(5, 1)
   local p = db:getOrCreatePattern(3, s.id)
-  assertPass(function()
-    db:activatePattern(p.id, s.id)
-  end)
-end
+  p.sequencer_id = s.id
+  p:save()
 
-function should.getActivePatternPosids()
-  local db = seq.PresetDb(':memory')
-  -- posid, song_id
-  local s = db:getOrCreateSequencer(5, 1)
-  local p = db:getOrCreatePattern(3, s.id)
-  db:activatePattern(p.id, s.id)
-
-  p = db:getOrCreatePattern(13, s.id)
-  db:activatePattern(p.id, s.id)
-
-  p = db:getOrCreatePattern(14, s.id)
-  db:activatePattern(p.id, s.id)
-
-  local posids = {}
-  for posid in db:getActivePatternPosids(s.id) do
-    table.insert(posids, posid)
-  end
-  assertValueEqual({3, 13, 14}, posids)
+  p = db:getPattern(3, s.id)
+  assertEqual(s.id, p.sequencer_id)
 end
 
 function should.updateSequencer()
@@ -203,7 +185,7 @@ function should.getPattern()
 end
 
 function should.loadAllEventsOngetPattern()
-  local song = helper.mockSong()
+  local song = seq.Song.mock()
   -- this should be pattern 17
   local p = song:getOrCreatePattern(gridToPosid(3, 1, 0))
   assertEqual(17, p.posid)
@@ -294,28 +276,6 @@ function should.deleteEvent()
   e:delete()
   e = db:getEvent(5, 17)
   assertNil(e)
-end
-
-function helper.mockSong()
-  local db = seq.PresetDb(':memory')
-  local song = db:getOrCreateSong(1, 'hello')
-  for row = 1,8 do
-    for col = 1,8 do
-      song:getOrCreatePattern(seq.Event.gridToPosid(row, col, 0))
-    end
-  end
-
-  for _, pat_id in ipairs {12, 15, 17, 1} do
-    -- Only fill 6 rows = 48 events
-    local pat = song:getOrCreatePattern(pat_id)
-    for row = 1,6 do
-      for col = 1,8 do
-        local posid = gridToPosid(row, col, 0)
-        local e = pat:getOrCreateEvent(posid)
-      end
-    end
-  end
-  return song
 end
 
 test.all()

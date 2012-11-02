@@ -288,13 +288,6 @@ function lib:deactivatePattern(pattern_id, sequencer_id)
   stmt:reset()
 end
 
-function lib:activePattern(pattern_id, sequencer_id)
-  local stmt = self.read_sequencers_patterns
-  stmt:bind_names { pattern_id = pattern_id, sequencer_id = sequencer_id }
-  local row = stmt:first_row()
-  stmt:reset()
-  return row and true
-end
 ------------------------------------------------------------  READ
 
 function lib:hasSequencer(posid)
@@ -361,6 +354,14 @@ end
 function lib:setSequencer(s)
   assert(s.id, 'Use createSequencer to create new objects')
   local stmt = self.update_sequencer
+  s.data = yaml.dump {
+    note     = s.note,
+    velocity = s.velocity,
+    length   = s.length,
+    position = s.position,
+    loop     = s.loop,
+    channel  = s.channel,
+  }
   stmt:bind_names(s)
   stmt:step()
   stmt:reset()
@@ -458,6 +459,14 @@ end
 function lib:setEvent(e)
   assert(e.id, 'Use createEvent to create new objects')
   local stmt = self.update_event
+  e.data = yaml.dump {
+    note     = e.note,
+    velocity = e.velocity,
+    length   = e.length,
+    position = e.position,
+    loop     = e.loop,
+    mute     = e.mute,
+  }
   stmt:bind_names(e)
   stmt:step()
   stmt:reset()
@@ -485,7 +494,7 @@ function private:prepareDb(is_new)
   -- events table
   if is_new then
     db:exec [[
-      CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, mute INTEGER);
+      CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, data TEXT);
       CREATE UNIQUE INDEX events_idx ON events(id);
       CREATE INDEX events_pattern_posidx ON events(pattern_id, posid);
       CREATE INDEX events_pattern_idx ON events(pattern_id);
@@ -494,7 +503,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_event = db:prepare [[
-    INSERT INTO events VALUES (NULL, :pattern_id, :posid, :note, :velocity, :length, :position, :loop, :mute);
+    INSERT INTO events VALUES (NULL, :pattern_id, :posid, :data);
   ]]
 
   ------------------------------------------------------------  READ
@@ -512,7 +521,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_event = db:prepare [[
-    UPDATE events SET pattern_id = :pattern_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, mute = :mute WHERE id = :id;
+    UPDATE events SET pattern_id = :pattern_id, posid = :posid, data = :data WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
@@ -532,7 +541,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_pattern = db:prepare [[
-    INSERT INTO patterns VALUES (NULL, :sequencer_id, :song_id, :posid);
+    INSERT INTO patterns VALUES (NULL, :song_id, :sequencer_id, :posid);
   ]]
 
   ------------------------------------------------------------  READ
@@ -568,7 +577,7 @@ function private:prepareDb(is_new)
   --   => channel, mute, pattern mode (single, multiple, latch)
   if is_new then
     db:exec [[
-      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER, note REAL, velocity REAL, length REAL, position REAL, loop REAL, channel INTEGER);
+      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER, data TEXT);
       CREATE UNIQUE INDEX sequencers_idx ON sequencers(id);
       CREATE UNIQUE INDEX sequencers_song_posidx ON sequencers(song_id, id);
     ]]
@@ -576,7 +585,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_sequencer = db:prepare [[
-    INSERT INTO sequencers VALUES (NULL, :song_id, :posid, :note, :velocity, :length, :position, :loop, :channel);
+    INSERT INTO sequencers VALUES (NULL, :song_id, :posid, :data);
   ]]
 
   ------------------------------------------------------------  READ
@@ -598,7 +607,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_sequencer = db:prepare [[
-    UPDATE sequencers SET song_id = :song_id, posid = :posid, note = :note, velocity = :velocity, length = :length, position = :position, loop = :loop, channel = :channel WHERE id = :id;
+    UPDATE sequencers SET song_id = :song_id, posid = :posid, data = :data WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
@@ -653,8 +662,8 @@ function private:patternFromRow(row)
   local p = seq.Pattern {
     id           = row[1],
     song_id      = row[2],
-    sequencer_id = row[2],
-    posid        = row[3],
+    sequencer_id = row[3],
+    posid        = row[4],
   }
   -- We only set db now so that 'set' does not save.
   p.db = self
@@ -662,16 +671,24 @@ function private:patternFromRow(row)
 end
 
 function private:eventFromRow(row)
+  local data = row[4]
+  if data then
+    row.data = nil
+    data = yaml.load(data) or {}
+  else
+    data = {}
+  end
   local e = seq.Event {
     id           = row[1],
-    pattern_id = row[2],
+    pattern_id   = row[2],
     posid        = row[3],
-    note         = row[4],
-    velocity     = row[5],
-    length       = row[6],
-    position     = row[7],
-    loop         = row[8],
-    mute         = row[9],
+    -- TODO data fields are copied 3 times (yaml.load, here, and in Event:set).
+    note     = data.note,
+    velocity = data.velocity,
+    length   = data.length,
+    position = data.position,
+    loop     = data.loop,
+    mute     = data.mute,
   }
   -- We only set db now so that 'set' does not save.
   e.db = self
@@ -679,16 +696,24 @@ function private:eventFromRow(row)
 end
 
 function private:sequencerFromRow(row)
+  local data = row[4]
+  if data then
+    row.data = nil
+    data = yaml.load(data) or {}
+  else
+    data = {}
+  end
   local s = seq.Sequencer {
     id       = row[1],
     song_id  = row[2],
     posid    = row[3],
-    note     = row[4],
-    velocity = row[5],
-    length   = row[6],
-    position = row[7],
-    loop     = row[8],
-    channel  = row[9],
+    -- TODO data fields are copied 3 times (yaml.load, here, and in Sequecer:set).
+    note     = data.note,
+    velocity = data.velocity,
+    length   = data.length,
+    position = data.position,
+    loop     = data.loop,
+    channel  = data.channel,
   }
   -- We only set db now so that 'set' does not save.
   s.db = self

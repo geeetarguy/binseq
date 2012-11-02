@@ -315,4 +315,19 @@ function should.addRemoveEventsOnPatternEnable()
   assertNil(list.next.next.next.next)
 end
 
+function should.setSequencerId()
+  -- posid, song_id
+  local song = seq.Song(1, ':memory')
+  local s = song:getOrCreateSequencer(5, 1)
+  local p = song:getOrCreatePattern(3, s.id)
+  s:enablePattern(p.posid)
+  assertEqual(s.id, p.sequencer_id)
+  -- cached version in song
+  p = song.patterns[p.posid]
+  assertEqual(s.id, p.sequencer_id)
+  -- saved version
+  p = song.db:getPattern(p.posid, song.id)
+  assertEqual(s.id, p.sequencer_id)
+end
+
 test.all()
