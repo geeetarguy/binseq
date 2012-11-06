@@ -27,12 +27,13 @@ setmetatable(lib, {
 })
 
 -- seq.Song(...)
-function lib.new(def, song_id, name)
+function lib.new(def_or_db_path, song_id, name)
   if song_id then
-    local db_path = def
+    local db_path = def_or_db_path
     local db = seq.PresetDb(db_path)
     return db:getOrCreateSong(song_id, name)
   end
+  local def = def_or_db_path
     
   local self = def or {}
   -- Find pattern by posid

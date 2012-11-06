@@ -121,11 +121,29 @@ function lib:nextTrigger(t, Gs, Gm, not_now)
     return off_t
   end
   
-  local tl = t % m
+  local count = math.floor(t / m)
+  -- tl = t % m
+  local tl = t - count * m
   local te = p - tl
   if te < 0 or (not_now and te == 0) then
     -- Wrap around loop
     te = te + m
+    count = count + 1
+  end
+
+  local notes = self.notes
+  if notes then
+    self.note = notes[1 + count % notes._len]
+  end
+
+  local velocities = self.velocities
+  if velocities then
+    self.velocity = velocities[1 + count % velocities._len]
+  end
+
+  local lengths = self.lengths
+  if lengths then
+    self.length = lengths[1 + count % lengths._len]
   end
   
   -- Return absolute next trigger

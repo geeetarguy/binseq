@@ -11,7 +11,8 @@ lib.__index         = lib
 seq.LSeq            = lib
 local private       = {}
 local top_button    = {}
-local col_button    = {}
+local col_press     = {}
+local col_release   = {}
 local m             = seq.LMainView.common
 local PARAMS        = m.PARAMS
 
@@ -141,6 +142,11 @@ function lib:release(row, col)
     -- Do not change last
     self.last_name = self.plast
     self.last_key = self.pkey
+  elseif col == 9 then
+    local f = col_release[row]
+    if f then
+      f(self, row, col)
+    end
   end
 end
 
@@ -150,7 +156,7 @@ function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
   elseif col == 9 then
-    f = col_button[row]
+    f = col_press[row]
   end
   if f then
     f(self, row, col)
@@ -170,27 +176,30 @@ end
 
 --=============================================== COLUMN BUTTONS
 -- Show pattern select
-col_button[1] = function(self, row, col)
+col_press[1] = function(self, row, col)
   -- store previous last
   self.plast, self.pkey = self.last_name, self.last_key
   self:loadView('Pattern', 'pattern')
 end
 
-col_button[2] = function(self, row, col)
+col_press[2] = function(self, row, col)
   self:loadView('Main')
 end
 
-col_button[3] = function(self, row, col)
+col_press[3] = function(self, row, col)
   self:loadView('Rec')
 end
 
 for i, key in ipairs(PARAMS) do
   if key ~= '' then
-    col_button[i] = function(self, row, col)
-      self:loadView('Batch', key)
+    col_press[i] = function(self, row, col)
+      -- Load Batch and inform of currently pressed state
+      self:loadView('Batch', key, true)
     end
   end
 end
+
+-- release is captured or ignored by loaded view
 
 --[[
 function lib:selectSequencer(posid)
@@ -271,7 +280,7 @@ function private:batchButton(row, col)
 end
 for i, key in ipairs(PARAMS) do
   if key ~= '' then
-    col_button[i] = private.batchButton
+    col_press[i] = private.batchButton
   end
 end
 
@@ -297,9 +306,9 @@ function private:seqButton(row, col)
 
   self:selectSequencer(nb + 1)
 end
-col_button[1] = private.seqButton
-col_button[2] = private.seqButton
-col_button[3] = private.seqButton
+col_press[1] = private.seqButton
+col_press[2] = private.seqButton
+col_press[3] = private.seqButton
 
 -- function private:recButton(row, col)
 --   self:loadView('Rec')

@@ -328,4 +328,120 @@ function should.computeGridToId()
   assertEqual(34, gridToPosid(2, 2, 1))
 end
 
+function should.cycleThroughNotes()
+  local e = seq.Event {
+    position = 48,
+    loop = 96,
+    notes = {10,12,17,13, _len = 4},
+  }
+  e:nextTrigger(0, 0, nil)
+  local _, n = e:trigger()
+  assertEqual(10, n)
+  -- NoteOff
+  _, n = e:trigger()
+  assertEqual(10, n)
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  _, n = e:trigger()
+  assertEqual(12, n)
+  -- NoteOff
+  _, n = e:trigger()
+  assertEqual(12, n)
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  _, n = e:trigger()
+  assertEqual(17, n)
+  -- NoteOff
+  _, n = e:trigger()
+  assertEqual(17, n)
+  
+  -- Indepotent
+  -- Song move
+  e:nextTrigger(0, 0, nil)
+  _, n = e:trigger()
+  assertEqual(10, n)
+  -- NoteOff
+  _, n = e:trigger()
+  assertEqual(10, n)
+end
+
+function should.cycleThroughVelocities()
+  local e = seq.Event {
+    position = 48,
+    loop = 96,
+    velocities = {10,12,17,13, _len = 4},
+  }
+  e:nextTrigger(0, 0, nil)
+  local _, _, n = e:trigger()
+  assertEqual(10, n)
+  -- NoteOff
+  _, _, n = e:trigger()
+  assertEqual(10, n)
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  _, _, n = e:trigger()
+  assertEqual(12, n)
+  -- NoteOff
+  _, _, n = e:trigger()
+  assertEqual(12, n)
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  _, _, n = e:trigger()
+  assertEqual(17, n)
+  -- NoteOff
+  _, _, n = e:trigger()
+  assertEqual(17, n)
+  
+  -- Indepotent
+  -- Song move
+  e:nextTrigger(0, 0, nil)
+  _, _, n = e:trigger()
+  assertEqual(10, n)
+  -- NoteOff
+  _, _, n = e:trigger()
+  assertEqual(10, n)
+end
+
+function should.cycleThroughLengths()
+  local e = seq.Event {
+    position = 48,
+    loop = 96,
+    lengths = {10,12,17,13, _len = 4},
+  }
+  e:nextTrigger(0, 0, nil)
+  e:trigger()
+  local n = e.off_t - e.t
+  assertEqual(10, n)
+  -- NoteOff
+  e:trigger()
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  e:trigger()
+  n = e.off_t - e.t
+  assertEqual(12, n)
+  -- NoteOff
+  e:trigger()
+
+  -- Next note
+  e:nextTrigger(e.t, 0, nil, true)
+  e:trigger()
+  n = e.off_t - e.t
+  assertEqual(17, n)
+  -- NoteOff
+  e:trigger()
+  
+  -- Indepotent
+  -- Song move
+  e:nextTrigger(0, 0, nil)
+  e:trigger()
+  n = e.off_t - e.t
+  assertEqual(10, n)
+  -- NoteOff
+  e:trigger()
+end
 test.all()

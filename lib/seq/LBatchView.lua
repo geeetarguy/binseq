@@ -103,9 +103,11 @@ function lib.new(lseq, song)
 end
 
 -- Display view content (called on load)
-function lib:display(key, page)
+function lib:display(key, pressed)
+  -- Key is still down
+  self.key_pressed = true
   local key = key or self.key
-  local page = page or self.page
+  local page = self.page
   self.key = key
   self.last_key = nil
   local pad = self.pad

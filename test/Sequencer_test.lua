@@ -317,7 +317,7 @@ end
 
 function should.setSequencerId()
   -- posid, song_id
-  local song = seq.Song(1, ':memory')
+  local song = seq.Song(':memory', 1)
   local s = song:getOrCreateSequencer(5, 1)
   local p = song:getOrCreatePattern(3, s.id)
   s:enablePattern(p.posid)
