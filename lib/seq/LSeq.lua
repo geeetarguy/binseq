@@ -117,13 +117,14 @@ function lib:loadView(name, key)
 end
 
 function lib:reScheduleAll(t)
-  for _, aseq in ipairs(self.song.sequencers) do
+  for _, aseq in pairs(self.song.sequencers) do
     aseq:move(t)
   end
 end
 
 function lib:trigger(t)
-  for _, aseq in ipairs(self.song.sequencers) do
+  for _, aseq in pairs(self.song.sequencers) do
+    -- Loop through all sequencers
     aseq.t = t
     list = aseq.list
     local e = list.next
@@ -193,8 +194,7 @@ end
 for i, key in ipairs(PARAMS) do
   if key ~= '' then
     col_press[i] = function(self, row, col)
-      -- Load Batch and inform of currently pressed state
-      self:loadView('Batch', key, true)
+      self:loadView('Batch', key)
     end
   end
 end

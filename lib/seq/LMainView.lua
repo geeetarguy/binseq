@@ -344,7 +344,13 @@ function private:setParam(key, row, col, e, states)
     -- Red ?
     return
   end
-  local p = e[key]
+
+  local p
+  if self.list then
+    p = self.list[row]
+  else
+    p = e[key]
+  end
   local r = BITS[key][col]
   local bits = self.bits[key][row]
   local b = bits[col]
@@ -378,13 +384,15 @@ function private:setParam(key, row, col, e, states)
       b = 0
     end
     bits[col] = b
-    -- if key == 'loop' and seq.global_loop then
-    --   -- update global loop
-    --   seq:setGlobalLoop(p + b * r)
-    -- else
+    if self.list then
+      print('SET', row, p + b * r)
+      self.list[row] = p + b * r
+      self.list_e:save()
+    else
       e:set {
         [key] = p + b * r,
       }
+    end
     --end
   else
     b = 0

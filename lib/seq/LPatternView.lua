@@ -191,9 +191,16 @@ function private:sequencerPress(row, col)
     -- remove
     aseq:delete()
     song.sequencers[col] = nil
+    for posid, pat in pairs(aseq.patterns) do
+      private.assignSequencer(self, song, pat)
+    end
+
     self.pad:button(0, col):setState('Off')
   else
     local aseq = song:getOrCreateSequencer(col)
+    aseq:set {
+      channel = col
+    }
     aseq.playback = self.lseq.playback
 
     for _, pat in pairs(song.patterns) do
@@ -228,9 +235,9 @@ end
 
 function private:assignSequencer(song, pat, col)
   if not col then
-    local p = math.floor(pat.posid - 1 / 64)
-    local r, c = posidToGrid(pat.posid, p)
+    local r, c = posidToGrid(pat.posid, 0)
     col = c
+    print('assignSequencer', pat.posid, col, p)
   end
 
   local seq

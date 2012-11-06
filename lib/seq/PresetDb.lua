@@ -461,8 +461,11 @@ function lib:setEvent(e)
   local stmt = self.update_event
   e.data = yaml.dump {
     note     = e.note,
+    notes    = e.notes,
     velocity = e.velocity,
+    velocities = e.velocities,
     length   = e.length,
+    lengths  = e.lengths,
     position = e.position,
     loop     = e.loop,
     mute     = e.mute,
@@ -684,12 +687,21 @@ function private:eventFromRow(row)
     posid        = row[3],
     -- TODO data fields are copied 3 times (yaml.load, here, and in Event:set).
     note     = data.note,
+    notes    = data.notes,
     velocity = data.velocity,
+    velocities = data.velocities,
     length   = data.length,
+    lengths  = data.lengths,
     position = data.position,
     loop     = data.loop,
     mute     = data.mute,
   }
+  for _, k in ipairs {'notes', 'velocities', 'lengths'} do
+    local l = e[k]
+    if l then
+      l._len = #l
+    end
+  end
   -- We only set db now so that 'set' does not save.
   e.db = self
   return e

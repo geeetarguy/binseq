@@ -23,7 +23,7 @@ local lib = {type = 'seq.LBatchView', name = 'Batch'}
 lib.__index         = lib
 seq.LBatchView      = lib
 -- Last column operation to function
-local col_button    = {}
+local col_press     = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
@@ -44,6 +44,12 @@ for i, key in ipairs(PARAMS) do
 end
 local rowToPosid = seq.Event.rowToPosid
 local posidToRow = seq.Event.posidToRow
+
+local PLURALIZE = {
+  note     = 'notes',
+  velocity = 'velocities',
+  length   = 'lengths',
+}
 
 local NOTE_ON_STATE = {
   'Green',
@@ -103,9 +109,9 @@ function lib.new(lseq, song)
 end
 
 -- Display view content (called on load)
-function lib:display(key, pressed)
-  -- Key is still down
-  self.key_pressed = true
+function lib:display(key)
+  self.list   = nil
+  self.list_e = nil
   local key = key or self.key
   local page = self.page
   self.key = key
@@ -175,48 +181,134 @@ function lib:editEvent(e)
 end
 lib.eventChanged = lib.editEvent
 
+-- Edit list of events/lengths/velocities stored in event.
+function lib:editMulti(e)
+  local list = e[PLURALIZE[self.key]]
+  local pad = self.pad
+  if not list then
+    list = {e[self.key], _len = 1}
+    e[PLURALIZE[self.key]] = list
+  end
+  self.list   = list
+  self.list_e = e
+  -- Clear
+  pad:prepare()
+  pad:clear()
+
+  -- Display events
+  local page = 0
+  local key = self.key
+  local row_by_id = {}
+  self.row_by_id = row_by_id
+
+  for row=1,list._len do
+    local value = list[row]
+    local posid = rowToPosid(row, page)
+    private.loadParam(self, key, e, value, BIT_STATE, row)
+  end
+  pad:button(KEY_TO_ROW[key], 9):setState('Green')
+  pad:commit()
+end
+
 function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
   elseif col == 9 then
-    f = col_button[row]
+    f = col_press[row]
   else
     f = private.pressGrid
   end
   if f then
     f(self, row, col)
   else
-    -- Default LSeq handling
+    -- default lseq handling
     self.lseq:press(row, col)
   end
 end
 
-function private:pressGrid(row, col)
-  local song = self.song
-  local e = self.events[row]
-  if not e then
-    -- Copy last event
-    -- Id is current page
-    local posid = rowToPosid(row, self.page)
-    -- new
-    e = song.edit_pattern:getOrCreateEvent(posid)
-    if self.last_e then
-      -- copy
-      e:set(self.last_e)
+for i, key in ipairs(PARAMS) do
+  if key ~= '' then
+    col_press[i] = function(self, row, col)
+      if key == self.key and self.list_e then
+        private.toggleMulti(self, 0, 4)
+      else
+        self.lseq:loadView('Batch', key)
+      end
     end
-    if key ~= 'mute' then
-      e:set {
-        [self.key] = 0,
-      }
-    end
-    -- Reload content
-    self:editEvent(e)
   end
-  if col == 1 then
-    private.setParam(self, self.key, row, col, e, e.off_t and NOTE_ON_STATE or NOTE_OFF_STATE)
+end
+
+
+function private:toggleMulti(row, col)
+  if self.list_e then
+    self.list_e = nil
+    self.list = nil
+    local last_key = self.last_key
+    local key = self.key
+    self.key = nil
+    self.lseq:loadView('Batch', key)
+    self.last_key = last_key
+  elseif self.edit_multi then
+    self.edit_multi = nil
+    self.pad:button(0, 4):setState('Off')
   else
-    private.setParam(self, self.key, row, col, e, BIT_STATE)
+    self.edit_multi = true
+    self.pad:button(0, 4):setState('Amber')
   end
-  self.last_e = e
+end
+top_button[4] = private.toggleMulti
+
+function private:pressGrid(row, col)
+  local key  = self.key
+  local song = self.song
+  if self.list_e then
+    local e  = self.list_e
+    local list = self.list
+    local len = list._len
+    -- Editing multiple notes/velocities/lengths from a single event
+    if row > len then
+      -- create empty value(s)
+      for i=len+1,row do
+        table.insert(list, 0)
+        list._len = i
+        private.loadParam(self, key, e, 0, BIT_STATE, i)
+      end
+    end
+    private.setParam(self, key, row, col, e, BIT_STATE)
+  else
+    local e = self.events[row]
+    if not e then
+      -- Copy last event
+      -- Id is current page
+      local posid = rowToPosid(row, self.page)
+      -- new
+      e = song.edit_pattern:getOrCreateEvent(posid)
+      if self.last_e then
+        -- copy
+        e:set(self.last_e)
+      end
+      if key ~= 'mute' then
+        e:set {
+          [self.key] = 0,
+        }
+      end
+      -- Reload content
+      self:editEvent(e)
+    end
+
+    if self.edit_multi or e[PLURALIZE[self.key]] then
+      print('editMulti', e.posid)
+      self:editMulti(e)
+      self.edit_multi = nil
+      self.pad:button(0, 4):setState('Green')
+    else
+      if col == 1 then
+        private.setParam(self, self.key, row, col, e, e.off_t and NOTE_ON_STATE or NOTE_OFF_STATE)
+      else
+        private.setParam(self, self.key, row, col, e, BIT_STATE)
+      end
+    end
+    self.last_e = e
+  end
 end
 
