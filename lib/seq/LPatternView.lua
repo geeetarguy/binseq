@@ -59,7 +59,8 @@ end
 
 -- Display view content (called on load)
 function lib:display(key)
-  self.key = key or 'mixer'
+  key = key or 'mixer'
+  self.key = key
   local pad  = self.pad
   local song = self.song
   local parts = self.patterns
@@ -70,13 +71,13 @@ function lib:display(key)
   pad:clear()
   self.pad:button(0, 4):setState(self.toggle and 'Green' or 'Off')
   -- Display patterns
-  -- Turn on 'sequencer' buttons
-  for col=1,8 do
-    if song.sequencers[col] then
-      pad:button(0, col):setState('Green')
-    end
-  end
   if key == 'pattern' then
+    -- Turn on 'sequencer' buttons
+    for col=1,8 do
+      if song.sequencers[col] then
+        pad:button(0, col):setState('Green')
+      end
+    end
     pad:button(1, 9):setState('Amber')
   else
     pad:button(0, 8):setState('Amber')
