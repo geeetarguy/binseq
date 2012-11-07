@@ -15,9 +15,9 @@
 
 --]]------------------------------------------------------
 local lib = {type = 'seq.Event'}
-lib.__index      = lib
-seq.Event    = lib
-local private    = {}
+lib.__index     = lib
+seq.Event       = lib
+local private   = {}
 local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity', 'mute'}
 
 --=============================================== PUBLIC
@@ -36,6 +36,8 @@ function lib.new(def)
     note     = 0,
     length   = 6,
     velocity = 80,
+    -- Stores the currently playing value index (index.length, ...)
+    index    = {},
   }
   setmetatable(self, lib)
   if def then
@@ -131,19 +133,29 @@ function lib:nextTrigger(t, Gs, Gm, not_now)
     count = count + 1
   end
 
-  local notes = self.notes
-  if notes then
-    self.note = notes[1 + count % notes._len]
-  end
+  if not self.off_t then
+    -- Only change on next NoteOn
+    local index = self.index
+    local notes = self.notes
+    if notes then
+      local i = 1 + count % notes._len
+      index.note = i
+      self.note = notes[i]
+    end
 
-  local velocities = self.velocities
-  if velocities then
-    self.velocity = velocities[1 + count % velocities._len]
-  end
+    local velocities = self.velocities
+    if velocities then
+      local i = 1 + count % velocities._len
+      index.velocity = i
+      self.velocity = velocities[i]
+    end
 
-  local lengths = self.lengths
-  if lengths then
-    self.length = lengths[1 + count % lengths._len]
+    local lengths = self.lengths
+    if lengths then
+      local i = 1 + count % lengths._len
+      index.length = i
+      self.length = lengths[i]
+    end
   end
   
   -- Return absolute next trigger

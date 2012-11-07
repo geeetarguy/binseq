@@ -31,6 +31,11 @@ local private       = {}
 
 --=============================================== CONSTANTS
 local PARAMS = {'', '', '', 'note', 'velocity', 'length', 'position', 'loop'}
+local PLURALIZE = {
+  note     = 'notes',
+  velocity = 'velocities',
+  length   = 'lengths',
+}
 local ROW_INDEX = {}
 for i, k in ipairs(PARAMS) do
   if k ~= '' then
@@ -405,6 +410,12 @@ function private:setParam(key, row, col, e, states)
 end
 
 function private:loadParam(key, e, value, states, row)
+  local list = e[PLURALIZE[key]]
+  if not self.list and list then
+    -- Not in value list mode and event as list
+    private.loadList(self, key, e, list, row)
+    return
+  end
   local states = states or BIT_STATE
   local value = value or (e and e[key]) or 0
   local row = row or ROW_INDEX[key]
@@ -464,6 +475,18 @@ function private:loadParam(key, e, value, states, row)
   end
 end
 
+function private:loadList(key, e, list, row)
+  local pad = self.pad
+  local idx = e.index[key]
+  for i, _ in ipairs(list) do
+    if i == idx then
+      pad:button(row, i):setState('Green')
+    else
+      pad:button(row, i):setState('LightGreen')
+    end
+  end
+end
+
 -- Share some private stuff with LBatchView and LPresetView
 lib.common = {
   loadParam  = private.loadParam,
@@ -471,5 +494,6 @@ lib.common = {
   PARAMS     = PARAMS,
   BIT_STATE  = BIT_STATE,
   EVENT_LIST = EVENT_LIST,
+  PLURALIZE  = PLURALIZE,
 }
 

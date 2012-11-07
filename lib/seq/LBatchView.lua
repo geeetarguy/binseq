@@ -36,6 +36,8 @@ private.setParam  = m.setParam
 -- Last column button parameter selection
 local PARAMS      = m.PARAMS
 local BIT_STATE   = m.BIT_STATE
+local PLURALIZE   = m.PLURALIZE
+
 local KEY_TO_ROW  = {}
 for i, key in ipairs(PARAMS) do
   if key ~= '' then
@@ -45,11 +47,6 @@ end
 local rowToPosid = seq.Event.rowToPosid
 local posidToRow = seq.Event.posidToRow
 
-local PLURALIZE = {
-  note     = 'notes',
-  velocity = 'velocities',
-  length   = 'lengths',
-}
 
 local NOTE_ON_STATE = {
   'Green',
@@ -147,36 +144,55 @@ end
 -- mandatory function for view
 function lib:setEventState(e)
   local pat = e.pattern
+  local key = self.key
   if pat ~= self.song.edit_pattern then
     return
   end
-  local posid = e.posid
-  local row = self.row_by_id[posid]
-  -- Bit value for this element
-  if row then
-    local b = self.bits[self.key][row][1] + 1
-    local btn = self.pad:button(row, 1)
-    if e.mute == 1 then
-      b = b + 3
+
+  local btn, b
+  if e == self.list_e then
+    -- Event edited in value list
+    local idx = e.index[key]
+    btn = self.pad:button(idx, 1)
+    b   = self.bits[key][idx][1] + 1
+  else
+    local posid = e.posid
+    local row = self.row_by_id[posid]
+    -- Bit value for this element
+    if not row then
+      return
     end
-    if e.off_t then
-      -- Note is on
-      btn:setState(NOTE_ON_STATE[b])
+    local idx = e.index[key]
+    if idx then
+      b = 1
+      btn = self.pad:button(row, idx)
     else
-      -- Note is off
-      btn:setState(NOTE_OFF_STATE[b])
+      b   = self.bits[key][row][1] + 1
+      btn = self.pad:button(row, 1)
     end
+  end
+
+  if e.mute == 1 then
+    b = b + 3
+  end
+  if e.off_t then
+    -- Note is on
+    btn:setState(NOTE_ON_STATE[b])
+  else
+    -- Note is off
+    btn:setState(NOTE_OFF_STATE[b])
   end
 end
 
 -- Used to reload event data on mute change
 function lib:editEvent(e)
+  local key = self.key
   local row = posidToRow(e.posid, self.page)
 
   if row then
     self.row_by_id[e.posid] = row
     self.events[row] = e
-    private.loadParam(self, self.key, e, e[self.key], BIT_STATE, row)
+    private.loadParam(self, key, e, e[key], BIT_STATE, row)
   end
 end
 lib.eventChanged = lib.editEvent

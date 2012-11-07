@@ -22,6 +22,7 @@ function should.setDefaultsOnCreate()
     velocity = 80,
     note     = 0,
     length   = 6,
+    index    = {},
   }, e)
 end
 
@@ -337,14 +338,17 @@ function should.cycleThroughNotes()
   e:nextTrigger(0, 0, nil)
   local _, n = e:trigger()
   assertEqual(10, n)
+  assertEqual(1, e.index.note)
   -- NoteOff
   _, n = e:trigger()
   assertEqual(10, n)
+  assertEqual(1, e.index.note)
 
   -- Next note
   e:nextTrigger(e.t, 0, nil, true)
   _, n = e:trigger()
   assertEqual(12, n)
+  assertEqual(2, e.index.note)
   -- NoteOff
   _, n = e:trigger()
   assertEqual(12, n)
@@ -376,14 +380,17 @@ function should.cycleThroughVelocities()
   e:nextTrigger(0, 0, nil)
   local _, _, n = e:trigger()
   assertEqual(10, n)
+  assertEqual(1, e.index.velocity)
   -- NoteOff
   _, _, n = e:trigger()
   assertEqual(10, n)
+  assertEqual(1, e.index.velocity)
 
   -- Next note
   e:nextTrigger(e.t, 0, nil, true)
   _, _, n = e:trigger()
   assertEqual(12, n)
+  assertEqual(2, e.index.velocity)
   -- NoteOff
   _, _, n = e:trigger()
   assertEqual(12, n)
@@ -416,14 +423,17 @@ function should.cycleThroughLengths()
   e:trigger()
   local n = e.off_t - e.t
   assertEqual(10, n)
+  assertEqual(1, e.index.length)
   -- NoteOff
   e:trigger()
+  assertEqual(1, e.index.length)
 
   -- Next note
   e:nextTrigger(e.t, 0, nil, true)
   e:trigger()
   n = e.off_t - e.t
   assertEqual(12, n)
+  assertEqual(2, e.index.length)
   -- NoteOff
   e:trigger()
 
@@ -444,4 +454,5 @@ function should.cycleThroughLengths()
   -- NoteOff
   e:trigger()
 end
+
 test.all()

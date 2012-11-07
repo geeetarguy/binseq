@@ -172,6 +172,36 @@ function private:pressGrid(row, col)
       end
       private.showButtonState(self, pat, row, col)
     end
+
+    --if self.copy_on then
+    --  if self.event then
+    --    -- copy
+    --    e = self.seq:setEvent(posid, self.event)
+    --    e.mute = 1
+    --  else
+    --    return
+    --  end
+    --  self.copy_on = false
+    --  self.copy_btn:setState('Off')
+    --elseif self.del_on == e.posid then
+    --  -- delete
+    --  self.del_on = false
+    --  self.pad:button(0, 5):setState('Off')
+
+    --  self.seq.pattern:deleteEvent(e)
+    --  self.pad:button(row, col):setState('Off')
+    --  if e == self.event then
+    --    -- clear
+    --    self.event = nil
+    --    self.btn   = nil
+    --    self:display()
+    --  end
+    --  return
+    --elseif self.del_on then
+    --  self.del_on = e.posid
+    --  self.pad:button(row, col):setState('Red')
+    --  return
+    --end
   else
     -- choose pattern to edit
     local pat = song:getOrCreatePattern(posid)
