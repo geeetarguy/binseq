@@ -29,7 +29,11 @@ setmetatable(lib, {
 function lib.new(def)
   local self = {
     -- Find event by event posid
-    events = {}
+    events = {},
+    chords = {_len = 0},
+    -- List of events whose purpose is to change currently playing chord.
+    -- The chord changer just increases the current chord_index.
+    chord_changers = {},
   }
 
   setmetatable(self, lib)
@@ -79,7 +83,7 @@ function lib:loadEvents()
 
     for e in self.db:getEvents(self.id) do
       events[e.posid] = e
-      e.pattern = self
+      e:setPattern(self)
     end
     self.loaded = true
   end
@@ -90,7 +94,7 @@ function lib:getOrCreateEvent(posid)
   if not e then
     e = self.db:getOrCreateEvent(posid, self.id)
     self.events[posid] = e
-    e.pattern = self
+    e:setPattern(self)
     if self.seq then
       -- Schedule event
       e:setSequencer(self.seq)

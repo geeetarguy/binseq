@@ -90,12 +90,20 @@ function lib:set(def)
     self:save()
   end
 
+  need_schedule = private.computeType(self) and need_schedule
+
   if need_schedule then
     local aseq = self.seq
     if aseq then
       aseq:schedule(self)
     end
   end
+end
+
+function lib:setPattern(pat)
+  assert(not self.pat, "Cannot change pattern")
+  self.pat = pat
+  private.computeType(self)
 end
 
 -- 0      Gs             Ep       Ep (ignored)
@@ -236,4 +244,66 @@ function lib:delete()
   assert(db, 'Cannot delete event without database')
   db:deleteEvent(self)
   self.deleted = true
+end
+
+function private:computeType()
+  local pat = self.pat
+  if self.loop == 0 then
+    --=============================================== Chord
+    if not self.is_chord then
+      -- add in pattern chords
+      local list = pat.chords
+      list._len = list._len + 1
+      table.insert(list, self)
+      self.is_chord = true
+    end
+    -- Do not schedule
+    return false
+  else
+    if self.is_chord then
+      -- remove from pattern chords
+      local list = pat.chords
+      for i, e in ipairs(list) do
+        if e == self then
+          list._len = list._len - 1
+          table.remove(list, i)
+          break
+        end
+      end
+      self.is_chord = false
+    end
+
+    local remove_from_changers = self.chord_changer
+
+    if self.note == 0 then
+      --=============================================== Chord trigger/changer
+      if self.velocity == 0 then
+        -- next chord trigger
+        remove_from_changers = false
+
+        if not self.chord_changer then
+          -- add to pattern chord changers
+          table.insert(pat.chord_changers, self)
+          self.chord_changer = true
+        end
+      else
+        -- chord player
+        self.chord_player = true
+      end
+    end
+
+    if remove_from_changers then
+      self.chord_changer = false
+      local list = pat.chord_changers
+      for i, e in ipairs(list) do
+        if e == self then
+          table.remove(list, i)
+          break
+        end
+      end
+    end
+
+    -- Schedule event
+    return true
+  end
 end

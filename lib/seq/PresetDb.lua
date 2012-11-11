@@ -212,6 +212,9 @@ end
 
 function lib:setPattern(p)
   assert(p.id, 'Use createPattern to create new objects')
+  p.data = yaml.dump {
+    -- nothing yet
+  }
   local stmt = self.update_pattern
   stmt:bind_names(p)
   stmt:step()
@@ -535,7 +538,7 @@ function private:prepareDb(is_new)
   --==========================================================  Pattern
   if is_new then
     db:exec [[
-      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, sequencer_id INTEGER, posid INTEGER);
+      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, sequencer_id INTEGER, posid INTEGER, data TEXT);
       CREATE UNIQUE INDEX patterns_idx    ON patterns(id);
       CREATE INDEX patterns_song_idx      ON patterns(song_id);
       CREATE INDEX patterns_song_posidx ON patterns(posid, song_id);
@@ -544,7 +547,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  CREATE
   self.create_pattern = db:prepare [[
-    INSERT INTO patterns VALUES (NULL, :song_id, :sequencer_id, :posid);
+    INSERT INTO patterns VALUES (NULL, :song_id, :sequencer_id, :posid, :data);
   ]]
 
   ------------------------------------------------------------  READ
@@ -562,7 +565,7 @@ function private:prepareDb(is_new)
 
   ------------------------------------------------------------  UPDATE
   self.update_pattern = db:prepare [[
-    UPDATE patterns SET song_id = :song_id, sequencer_id = :sequencer_id, posid = :posid WHERE id = :id;
+    UPDATE patterns SET song_id = :song_id, sequencer_id = :sequencer_id, posid = :posid, data =:data WHERE id = :id;
   ]]
 
   ------------------------------------------------------------  DELETE
@@ -662,6 +665,13 @@ end
 --==========================================================  PRIVATE
 
 function private:patternFromRow(row)
+  local data = row[5]
+  if data then
+    row.data = nil
+    data = yaml.load(data) or {}
+  else
+    data = {}
+  end
   local p = seq.Pattern {
     id           = row[1],
     song_id      = row[2],
