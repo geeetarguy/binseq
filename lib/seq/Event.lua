@@ -303,7 +303,12 @@ function private:computeType()
       end
     end
 
-    -- Schedule event
-    return true
+    if self.position >= self.loop then
+      -- This is an error = mute event.
+      return false
+    else
+      -- Schedule event
+      return true
+    end
   end
 end

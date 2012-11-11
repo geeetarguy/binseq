@@ -103,6 +103,35 @@ function lib:getOrCreateEvent(posid)
   return e
 end
 
+-- Return chord to play at time t (computed by using the list
+-- of chord changes).
+function lib:chordIndex(t)
+  local len = self.chords._len
+  if len == 0 then
+    return nil
+  end
+
+  -- count = sum(number of changes until now for each changer)
+  local count = 0
+  for _, c in ipairs(self.chord_changers) do
+    local l = c.loop
+    local p = c.position
+    local c_count = math.floor(t / l) 
+    -- |---- p --|---- p --|--x
+    -- idx =
+    -- 1     2   2     3   3  3
+    -- c_count = 
+    -- 0     0   1     1   2  2
+    local pos = t - c_count * l
+    if pos >= p and p > 0 then
+      c_count = c_count + 1
+    end
+    -- 0     1   1     2   2  2
+    count = count + c_count
+  end
+  return 1 + count % len
+end
+
 function lib:save()
   -- Write event in database
   local db = self.db

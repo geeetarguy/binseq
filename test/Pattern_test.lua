@@ -91,7 +91,6 @@ function should.removeEventFromChords()
   assertEqual(0, pat.chords._len)
 end
 
-
 function chordPattern()
   local db = seq.PresetDb ':memory'
   local pat = db:getOrCreatePattern(1, 1)
@@ -109,52 +108,70 @@ function chordPattern()
   local c2 = pat:getOrCreateEvent(9)
 
   -- C-  (60, 63, 67)
-  e1.notes = {60, 63, 67, _len = 3}
-  -- treat as chord
-  e1.loop  = 0
+  e1:set {
+    notes = {60, 63, 67, _len = 3},
+    -- treat as chord
+    loop  = 0,
+  }
 
   -- F-  (60, 65, 68)
-  e2.notes = {60, 65, 68, _len = 3}
-  e2.loop  = 0
+  e2:set {
+    notes = {60, 65, 68, _len = 3},
+    loop  = 0,
+  }
 
   -- G7  (59, 62, 65)
-  e3.notes = {59, 62, 65, _len = 3}
-  e3.loop  = 0
+  e3:set {
+    notes = {59, 62, 65, _len = 3},
+    loop  = 0,
+  }
 
   -- Rhythm
   -- Do not play any note (chord trigger)
   -- Every bar 
-  r1.loop = 96
-  r1.position = 0
-  r1.note  = 0
+  r1:set {
+    loop = 96,
+    position = 0,
+    note  = 0,
+  }
 
   -- Every bar on 3
-  r2.loop = 96
-  r2.position = 48
-  r2.note  = 0
+  r2:set {
+    loop = 96,
+    position = 48,
+    note  = 0,
+  }
 
   -- Every bar on 3+ 
-  r3.loop = 96
-  r3.position = 60
-  r3.note  = 0
+  r3:set {
+    loop = 96,
+    position = 60,
+    note  = 0,
+  }
 
   -- Every bar on 4 
-  r4.loop = 96
-  r4.position = 72
-  r4.note  = 0
+  r4:set {
+    loop = 96,
+    position = 72,
+    note  = 0,
+  }
 
   -- Change chord every 2 bar
   -- Ignore as chord note
-  c1.note     = 0
-  -- Mark as chord changer
-  c1.velocity = 0
-  c1.loop = 192
+  c1:set {
+    note     = 0,
+    -- Mark as chord changer
+    velocity = 0,
+    loop = 192,
+  }
 
   -- Change chord at bar 3 every 4
-  c2.note = 0
-  c2.velocity = 0
-  c2.loop = 384
-  c2.position = 288
+  c2:set {
+    note = 0,
+    velocity = 0,
+    loop = 384,
+    position = 288,
+  }
 
   local partition = {
     events = {
@@ -192,6 +209,43 @@ function chordPattern()
     [456] = {e=r4, chord = {60, 63, 67}},
   }
   return pat, partition
+end
+
+function should.computeChordIndex()
+  local pat, partition = chordPattern()
+
+  assertEqual(3, pat.chords._len)
+
+  -- Chord changers:
+  -- c1.loop = 192
+  -- c2.loop = 384
+  -- c2.position = 288
+  -- ==> [0, 192, 288, 384, 576, 672]
+  local index_for_t = {
+    [0] = 1,
+    -- anything in between is 1
+    [5] = 1,
+    [100] = 1,
+    [191] = 1,
+    -- change
+    [192] = 2,
+    [193] = 2,
+    -- change
+    [288] = 3,
+    [298] = 3,
+    -- change
+    [384] = 1,
+    [387] = 1,
+    -- change
+    [576] = 2,
+    -- change
+    [672] = 3,
+  }
+  --
+  for t, idx in pairs(index_for_t) do
+    assertEqual(idx, pat:chordIndex(t))
+  end
+
 end
 
 function should.useAsChord()
