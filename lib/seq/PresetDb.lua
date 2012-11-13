@@ -490,22 +490,56 @@ end
 
 --==========================================================  PRIVATE
 
+lib.MIGRATIONS = {
+  {name = 'base', 
+   sql  = [[
+      /* Events table */
+      CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, data TEXT);
+      CREATE UNIQUE INDEX events_idx ON events(id);
+      CREATE INDEX events_pattern_posidx ON events(pattern_id, posid);
+      CREATE INDEX events_pattern_idx ON events(pattern_id);
+
+      /* Pattern */
+      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, sequencer_id INTEGER, posid INTEGER, data TEXT);
+      CREATE UNIQUE INDEX patterns_idx    ON patterns(id);
+      CREATE INDEX patterns_song_idx      ON patterns(song_id);
+      CREATE INDEX patterns_song_posidx ON patterns(posid, song_id);
+      
+      /* Sequencer */
+      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER, data TEXT);
+      CREATE UNIQUE INDEX sequencers_idx ON sequencers(id);
+      CREATE UNIQUE INDEX sequencers_song_posidx ON sequencers(song_id, id);
+      
+      /* Song */
+      CREATE TABLE songs (id INTEGER PRIMARY KEY, posid INTEGER, name TEXT, created_at TEXT);
+      CREATE UNIQUE INDEX songs_idx ON songs(id);
+      CREATE UNIQUE INDEX songs_posidx ON songs(posid);
+   ]]},
+}
 
 -- Prepare the database for events
 function private:prepareDb(is_new)
   local db = self.db
 
-  --==========================================================  Events
-
-  -- events table
   if is_new then
     db:exec [[
-      CREATE TABLE events (id INTEGER PRIMARY KEY, pattern_id INTEGER, posid INTEGER, data TEXT);
-      CREATE UNIQUE INDEX events_idx ON events(id);
-      CREATE INDEX events_pattern_posidx ON events(pattern_id, posid);
-      CREATE INDEX events_pattern_idx ON events(pattern_id);
+      CREATE TABLE schema_info (id INTEGER PRIMARY KEY, data TEXT);
+      INSERT INTO schema_info VALUES (null, "{}");
     ]]
   end
+
+  self.read_schema_info = db:prepare [[
+    SELECT * FROM schema_info WHERE id = 1;
+  ]]
+
+  self.update_schema_info = db:prepare [[
+    UPDATE schema_info SET data = :data WHERE id = 1;
+  ]]
+  self.schema_info = private.getOrCreateSchemaInfo(self)
+
+  private.migrate(self)
+  
+  --==========================================================  Events
 
   ------------------------------------------------------------  CREATE
   self.create_event = db:prepare [[
@@ -536,14 +570,6 @@ function private:prepareDb(is_new)
   ]]
 
   --==========================================================  Pattern
-  if is_new then
-    db:exec [[
-      CREATE TABLE patterns (id INTEGER PRIMARY KEY, song_id INTEGER, sequencer_id INTEGER, posid INTEGER, data TEXT);
-      CREATE UNIQUE INDEX patterns_idx    ON patterns(id);
-      CREATE INDEX patterns_song_idx      ON patterns(song_id);
-      CREATE INDEX patterns_song_posidx ON patterns(posid, song_id);
-    ]]
-  end
 
   ------------------------------------------------------------  CREATE
   self.create_pattern = db:prepare [[
@@ -581,13 +607,6 @@ function private:prepareDb(is_new)
   -- * global settings
   --   => note, velocity, length, position, loop
   --   => channel, mute, pattern mode (single, multiple, latch)
-  if is_new then
-    db:exec [[
-      CREATE TABLE sequencers (id INTEGER PRIMARY KEY, song_id INTEGER, posid INTEGER, data TEXT);
-      CREATE UNIQUE INDEX sequencers_idx ON sequencers(id);
-      CREATE UNIQUE INDEX sequencers_song_posidx ON sequencers(song_id, id);
-    ]]
-  end
 
   ------------------------------------------------------------  CREATE
   self.create_sequencer = db:prepare [[
@@ -625,13 +644,6 @@ function private:prepareDb(is_new)
 
   --==========================================================  Song
   -- note, velocity, length, position, loop are global settings
-  if is_new then
-    db:exec [[
-      CREATE TABLE songs (id INTEGER PRIMARY KEY, posid INTEGER, name TEXT, created_at TEXT);
-      CREATE UNIQUE INDEX songs_idx ON songs(id);
-      CREATE UNIQUE INDEX songs_posidx ON songs(posid);
-    ]]
-  end
 
   ------------------------------------------------------------  CREATE
   self.create_song = db:prepare [[
@@ -740,4 +752,45 @@ function private:sequencerFromRow(row)
   -- We only set db now so that 'set' does not save.
   s.db = self
   return s
+end
+
+function private:getOrCreateSchemaInfo()
+  local db = self.db
+  local stmt = self.read_schema_info
+  local row = stmt:first_row()
+  stmt:reset()
+  if not row then
+    db:exec [[ INSERT INTO schema_info VALUES (1, "{}"); ]]
+    row = stmt:first_row()
+    stmt:reset()
+  end
+  return yaml.load(row[2])
+end
+
+function private:saveSchemaInfo()
+  local stmt = self.update_schema_info
+  stmt:bind_names {
+    data = yaml.dump(self.schema_info)
+  }
+  stmt:step()
+  stmt:reset()
+end
+
+function private:migrate()
+  local schema_info = self.schema_info
+  local done = {}
+  local db = self.db
+  db:exec 'BEGIN'
+  for _, m in ipairs(lib.MIGRATIONS) do
+    if not schema_info[m.name] then
+      db:exec(m.sql)
+      done[m.name] = true
+    end
+  end
+  db:exec 'COMMIT;'
+
+  for k, v in pairs(done) do
+    schema_info[k] = v
+  end
+  private.saveSchemaInfo(self)
 end
