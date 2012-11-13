@@ -90,7 +90,7 @@ function lib:set(def)
     self:save()
   end
 
-  need_schedule = private.computeType(self) and need_schedule
+  need_schedule = private.computeType(self) or need_schedule
 
   if need_schedule then
     local aseq = self.seq
