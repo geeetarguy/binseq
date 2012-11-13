@@ -249,7 +249,7 @@ function private:setupMidi()
         self:reScheduleAll(t)
       end
     else
-      ls:record(msg)
+      --self:record(msg)
     end
   end
 end

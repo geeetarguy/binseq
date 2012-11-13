@@ -269,7 +269,7 @@ function lib:editEvent(e, row, col)
 end
 
 function lib:setEventState(e)
-  local pat = e.pattern
+  local pat = e.pat
   if pat ~= self.song.edit_pattern then
     return
   end
@@ -358,6 +358,12 @@ function private:setParam(key, row, col, e, states)
   end
   local r = BITS[key][col]
   local bits = self.bits[key][row]
+  if bits == 'multi' then
+    -- TODO: Same as BatchView
+    print('TODO')
+    return
+  end
+
   local b = bits[col]
   if type(r) == 'string' then
     -- special operation
@@ -390,10 +396,10 @@ function private:setParam(key, row, col, e, states)
     end
     bits[col] = b
     if self.list then
-      print('SET', row, p + b * r)
       self.list[row] = p + b * r
       self.list_e:save()
     else
+      print('SET', key, p + b * r)
       e:set {
         [key] = p + b * r,
       }
@@ -411,6 +417,7 @@ end
 
 function private:loadParam(key, e, value, states, row)
   local list = e[PLURALIZE[key]]
+  local row = row or ROW_INDEX[key]
   if not self.list and list then
     -- Not in value list mode and event as list
     private.loadList(self, key, e, list, row)
@@ -418,7 +425,6 @@ function private:loadParam(key, e, value, states, row)
   end
   local states = states or BIT_STATE
   local value = value or (e and e[key]) or 0
-  local row = row or ROW_INDEX[key]
   local pad = self.pad
 
   local btns = self.btns[key]
@@ -478,6 +484,12 @@ end
 function private:loadList(key, e, list, row)
   local pad = self.pad
   local idx = e.index[key]
+  local b = self.bits[key]
+  if not b then
+    b = {}
+    self.bits[key] = b
+  end
+  b[row] = 'multi'
   for i, _ in ipairs(list) do
     if i == idx then
       pad:button(row, i):setState('Green')

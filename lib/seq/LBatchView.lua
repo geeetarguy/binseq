@@ -313,7 +313,7 @@ function private:pressGrid(row, col)
     end
 
     if self.edit_multi or e[PLURALIZE[self.key]] then
-      print('editMulti', e.posid)
+      -- TODO: Use also on MainView...
       self:editMulti(e)
       self.edit_multi = nil
       self.pad:button(0, 4):setState('Green')

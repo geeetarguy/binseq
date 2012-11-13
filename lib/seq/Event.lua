@@ -57,7 +57,9 @@ function lib:setSequencer(aseq)
     self.seq:removeEvent(self)
   end
   self.seq = aseq
-  if aseq and self.mute ~= 1 then
+  if aseq 
+    and self.mute ~= 1 
+    and not self.is_chord then
     aseq:schedule(self)
   end
 end
@@ -90,13 +92,19 @@ function lib:set(def)
     self:save()
   end
 
-  need_schedule = private.computeType(self) or need_schedule
 
-  if need_schedule then
-    local aseq = self.seq
-    if aseq then
-      aseq:schedule(self)
-    end
+
+
+  local scheduled_type = private.computeType(self)
+  local aseq = self.seq
+  if not aseq then
+    return
+  end
+
+  if scheduled_type and need_schedule then
+    aseq:schedule(self)
+  elseif not scheduled_type and self.prev then
+    aseq:removeEvent(self)
   end
 end
 
@@ -211,8 +219,14 @@ function lib:trigger(chan)
     if self.chord_player then
       -- Chord
       local chord = self.pat:chord(self.t)
+      if not chord then
+        -- Nothing to play...
+        self.off_t = nil
+        return nil
+      end
+      local chord_notes = chord.notes or {chord.note}
       local notes = {}
-      for _, n in ipairs(chord.notes) do
+      for _, n in ipairs(chord_notes) do
         table.insert(notes, {base, n, velo})
       end
       -- Make sure the NoteOff message uses the same note value
@@ -277,6 +291,11 @@ end
 
 function private:computeType()
   local pat = self.pat
+  if not pat then
+    -- This happens during object instantiation from DB.
+    return
+  end
+
   if self.loop == 0 then
     --=============================================== Chord
     if not self.is_chord then
@@ -319,6 +338,8 @@ function private:computeType()
         -- chord player
         self.chord_player = true
       end
+    else
+      self.chord_player  = false
     end
 
     if remove_from_changers then
@@ -332,8 +353,8 @@ function private:computeType()
       end
     end
 
-    if self.position >= self.loop then
-      -- This is an error = mute event.
+    --                   This is an error => mute event.
+    if self.mute == 1 or self.position >= self.loop then
       return false
     else
       -- Schedule event

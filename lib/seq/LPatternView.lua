@@ -126,7 +126,7 @@ function lib:press(row, col)
 end
 
 function lib:setEventState(e)
-  local pat = e.pattern
+  local pat = e.pat
   local posid = pat.posid
   private.showButtonState(self, pat, nil, nil, e)
 end
