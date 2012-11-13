@@ -132,6 +132,10 @@ function lib:chordIndex(t)
   return 1 + count % len
 end
 
+function lib:chord(t)
+  return self.chords[self:chordIndex(t)]
+end
+
 function lib:save()
   -- Write event in database
   local db = self.db

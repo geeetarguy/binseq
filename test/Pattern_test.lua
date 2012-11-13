@@ -191,16 +191,16 @@ function chordPattern()
     [168] = {e=r4, chord = {60, 63, 67}},
     -- CHORD CHANGE AFTER BAR 2
     -- 3rd bar
-    [192] = {e=r1, chord = {63, 65, 62}},
-    [240] = {e=r2, chord = {63, 65, 62}},
-    [252] = {e=r3, chord = {63, 65, 62}},
-    [264] = {e=r4, chord = {63, 65, 62}},
+    [192] = {e=r1, chord = {60, 65, 68}},
+    [240] = {e=r2, chord = {60, 65, 68}},
+    [252] = {e=r3, chord = {60, 65, 68}},
+    [264] = {e=r4, chord = {60, 65, 68}},
     -- CHORD CHANGE AFTER BAR 3
     -- 4th bar
-    [288] = {e=r1, chord = {67, 68, 65}},
-    [336] = {e=r2, chord = {67, 68, 65}},
-    [348] = {e=r3, chord = {67, 68, 65}},
-    [360] = {e=r4, chord = {67, 68, 65}},
+    [288] = {e=r1, chord = {59, 62, 65}},
+    [336] = {e=r2, chord = {59, 62, 65}},
+    [348] = {e=r3, chord = {59, 62, 65}},
+    [360] = {e=r4, chord = {59, 62, 65}},
     -- CHORD CHANGE AFTER BAR 4
     -- 5th bar == 1st bar
     [384] = {e=r1, chord = {60, 63, 67}},
@@ -267,6 +267,48 @@ function should.useAsChord()
     end
   end
 end
+
+function should.playChord()
+  local pat, partition = chordPattern()
+  -- rhythm events
+  local r = partition.events.r
+
+  for _, e in ipairs(partition.events.r) do
+    -- t, Gs
+    e:nextTrigger(0, 0)
+    assertTrue(e.chord_player)
+  end
+
+  for t=0,500 do
+    local event = partition[t]
+    if event then
+      local e = event.e
+      local chord = event.chord
+      -- NoteOn
+      assertNil(e.off_t)
+      local midi = e:trigger()
+      assertEqual(3, #midi)
+      for i=1,3 do 
+        assertEqual(144, midi[i][1])
+        assertEqual(chord[i], midi[i][2])
+      end
+      -- Prepare Note Off
+      e:nextTrigger(e.t, 0, nil, true)
+      assertTrue(e.off_t)
+      -- NoteOff
+      local midi = e:trigger()
+      for i=1,3 do 
+        assertEqual(128, midi[i][1])
+        assertEqual(chord[i], midi[i][2])
+      end
+      assertNil(e.off_t)
+      -- Prepare next note
+      e:nextTrigger(e.t, 0, nil, true)
+    end
+  end
+ 
+end
+
 
 test.all()
 

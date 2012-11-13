@@ -186,15 +186,44 @@ end
 function lib:trigger(chan)
   local chan = chan or 1
   if self.off_t then
-    -- NoteOff
+    --=============================================== NoteOff
+    local base = chan - 1 + 0x80
+    local velo = self.velocity
     self.off_t = nil
-    return chan - 1 + 0x80, self.off_n, self.velocity
+
+    if type(self.off_n) == 'table' then
+      -- chord Off
+      local off = self.off_n
+      for i, n in ipairs(off) do
+        -- NoteOn to NoteOff
+        n[1] = base
+      end
+      return off
+    else
+      return base, self.off_n, velo
+    end
   else
-    -- NoteOn
+    --=============================================== NoteOn
+    local base = chan - 1 + 0x90
+    local velo = self.velocity
     self.off_t = self.t + self.length
-    -- Make sure the NoteOff message uses the same note value
-    self.off_n = self.note
-    return chan - 1 + 0x90, self.note, self.velocity
+
+    if self.chord_player then
+      -- Chord
+      local chord = self.pat:chord(self.t)
+      local notes = {}
+      for _, n in ipairs(chord.notes) do
+        table.insert(notes, {base, n, velo})
+      end
+      -- Make sure the NoteOff message uses the same note value
+      self.off_n = notes
+      return notes
+    else
+      -- Single note
+      -- Make sure the NoteOff message uses the same note value
+      self.off_n = self.note
+      return base, self.note, self.velocity
+    end
   end
 end
 
