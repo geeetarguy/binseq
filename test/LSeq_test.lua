@@ -14,7 +14,7 @@ function should.autoLoad()
 end
 
 function should.createLSeq()
-  local ls = seq.LSeq('Foo', ':memory')
+  local ls = seq.LSeq('Foo', ':memory:')
   assertEqual('seq.LSeq', ls.type)
 end
 

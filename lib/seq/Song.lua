@@ -133,7 +133,7 @@ end
 --================================================== Used for testing
 local gridToPosid = seq.Event.gridToPosid
 function lib.mock()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local song = db:getOrCreateSong(1, 'hello')
   for row = 1,6 do
     for col = 1,8 do

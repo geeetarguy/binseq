@@ -200,7 +200,7 @@ for i, key in ipairs(PARAMS) do
 end
 
 function private:setupMidi()
-  local midiout = midi.Out()
+  local midiout = midi.Out() --'Bus 1')
   midiout:virtualPort(self.name)
 
   self.midiout = midiout

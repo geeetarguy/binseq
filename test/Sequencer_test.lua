@@ -30,7 +30,7 @@ function should.prepareListOnLoad()
 end
 
 function should.buildActiveList()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   local p = song:getOrCreatePattern(1)
   aseq:enablePattern(1)
@@ -81,7 +81,7 @@ function should.buildActiveList()
 end
 
 function should.moveOnTrigger()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   local p = song:getOrCreatePattern(1)
   aseq:enablePattern(1)
@@ -95,7 +95,7 @@ function should.moveOnTrigger()
 end
 
 function should.rescheduleEventOnTrigger()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   local p = song:getOrCreatePattern(1)
   aseq:enablePattern(1)
@@ -144,7 +144,7 @@ function should.rescheduleEventOnTrigger()
 end
 
 function should.rescheduleEventOnEdit()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   local list = aseq.list
   local p = song:getOrCreatePattern(1)
@@ -197,7 +197,7 @@ function should.rescheduleEventOnEdit()
 end
 
 function should.rescheduleEventOnEditWithT()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   aseq:move(20)
 
@@ -255,7 +255,7 @@ function should.rescheduleEventOnEditWithT()
 end
 
 function should.addRemoveEventsOnPatternEnable()
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   aseq:move(20)
 
@@ -317,7 +317,7 @@ end
 
 function should.setSequencerId()
   -- posid, song_id
-  local song = seq.Song(':memory', 1)
+  local song = seq.Song(':memory:', 1)
   local s = song:getOrCreateSequencer(5, 1)
   local p = song:getOrCreatePattern(3, s.id)
   s:enablePattern(p.posid)

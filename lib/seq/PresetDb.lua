@@ -32,7 +32,7 @@ setmetatable(lib, {
 function lib.new(path)
   local is_new
   local self = {}
-  if path == ':memory' then
+  if path == ':memory:' then
     self.path = nil
     is_new = true
     self.db = sqlite3.open_memory()
@@ -91,14 +91,27 @@ function lib:getSong(posid)
   stmt:reset()
   if row then
     -- create Song object
-    return seq.Song {
-      db       = self,
-      id       = row[1],
-      posid    = row[2],
-      name     = row[3],
-    }
+    return private.songFromRow(self, row)
   else
     return nil
+  end
+end
+
+-- Returns an iterator over all the songs.
+function lib:getSongs()
+  local db = self.db
+  local stmt = self.read_songs_list
+  
+  -- stmt:rows() is an iterator
+  local next_row = stmt:rows()
+  return function()
+    local row = next_row(stmt)
+    if row then
+      return private.songFromRow(self, row)
+    else
+      -- done
+      stmt:reset()
+    end
   end
 end
 
@@ -659,6 +672,10 @@ function private:prepareDb(is_new)
     SELECT * FROM songs WHERE posid = :posid;
   ]]
 
+  self.read_songs_list = db:prepare [[
+    SELECT * FROM songs ORDER BY posid ASC;
+  ]]
+
   ------------------------------------------------------------  UPDATE
   self.update_song = db:prepare [[
     UPDATE songs SET posid = :posid, name = :name, created_at = :created_at WHERE id = :id;
@@ -793,4 +810,13 @@ function private:migrate()
     schema_info[k] = v
   end
   private.saveSchemaInfo(self)
+end
+
+function private:songFromRow(row)
+  return seq.Song {
+    db       = self,
+    id       = row[1],
+    posid    = row[2],
+    name     = row[3],
+  }
 end

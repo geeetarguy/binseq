@@ -324,17 +324,16 @@ function private:computeType()
     local remove_from_changers = self.chord_changer
 
     if self.note == 0 then
-      --=============================================== Chord trigger/changer
       if self.velocity == 0 then
-        -- next chord trigger
-        remove_from_changers = false
-
+        --=============================================== Chord changer
         if not self.chord_changer then
           -- add to pattern chord changers
           table.insert(pat.chord_changers, self)
           self.chord_changer = true
         end
+        return false
       else
+        --=============================================== Chord trigger
         -- chord player
         self.chord_player = true
       end

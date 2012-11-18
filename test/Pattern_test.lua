@@ -30,7 +30,7 @@ function should.loadEvents()
 end
 
 function should.addEventToChordChangers()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({}, pat.chord_changers)
@@ -44,7 +44,7 @@ function should.addEventToChordChangers()
 end
 
 function should.removeEventFromChordChangers()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -61,7 +61,7 @@ function should.removeEventFromChordChangers()
 end
 
 function should.addEventToChords()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -75,7 +75,7 @@ function should.addEventToChords()
 end
 
 function should.removeEventFromChords()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -92,7 +92,7 @@ function should.removeEventFromChords()
 end
 
 function chordPattern()
-  local db = seq.PresetDb ':memory'
+  local db = seq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   -- Chord notes
   local e1 = pat:getOrCreateEvent(1)

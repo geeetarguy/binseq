@@ -52,7 +52,7 @@ function lib.new(lseq, song)
   }
 
   -- patterns by posid
-  self.name_bits = private.nameToBits(song.name)
+  self.name_bits = private.nameToBits(self, song.name)
 
   return setmetatable(self, lib)
 end
@@ -69,7 +69,7 @@ function lib:display()
   pad:clear()
   -- Display patterns
   -- Turn on 'pattern' button
-  pad:button(0, 1):setState('Amber')
+  pad:button(0, 1):setState('Red')
 
   for row=1,8 do
     for col=1,8 do
@@ -114,11 +114,8 @@ function private:pressGrid(row, col)
   print(self.song.name)
 end
 
-function private.nameToBits(name)
+function private:nameToBits(name, first)
   local bits = {}
-  -- 64 bits, 4 states
-  -- every 3 squares = 1 char 4*4*4
-  -- ASCII 60 - 124
   for char_id=1,22 do
     local char = string.byte(name, char_id) or 32
     char = char - 32
@@ -130,6 +127,10 @@ function private.nameToBits(name)
     for delta=2,0,-1 do
       local posid = 1 + (char_id-1) * 3 + 2 - delta
       local val = math.floor(char / 4^delta)
+      if first and val > 0 then
+        -- Return just the first non-zero bit (used in LSongsView).
+        return val
+      end
       char = char - (val * 4^delta)
       bits[posid] = val
     end
@@ -153,3 +154,8 @@ function private.bitsToName(bits)
   end
   return s
 end
+
+lib.common = {
+  nameToBits = private.nameToBits,
+  BIT_STATE  = BIT_STATE,
+}
