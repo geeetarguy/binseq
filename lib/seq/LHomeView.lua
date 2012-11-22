@@ -45,7 +45,6 @@ function lib.new(lseq, song)
   local self = {
     lseq = lseq,
     pad  = lseq.pad,
-    song = lseq.song,
     -- default pagination
     page = 0,
     patterns = {},
@@ -60,7 +59,7 @@ end
 -- Display view content (called on load)
 function lib:display()
   local pad  = self.pad
-  local song = self.song
+  local song = self.lseq.song
   local bits = self.name_bits
   local curr = (song.edit_pattern or {}).posid
   local page = self.page
@@ -90,7 +89,7 @@ function lib:press(row, col)
       return
     end
   elseif col == 9 then
-    -- pass to LSeq
+    f = col_button[row]
   else
     -- press on grid
     f = private.pressGrid
@@ -108,10 +107,10 @@ function private:pressGrid(row, col)
   local b = (self.name_bits[posid] + 1) % 4
   self.name_bits[posid] = b
   self.pad:button(row, col):setState(BIT_STATE[b+1])
-  self.song:set {
+  self.lseq.song:set {
     name = private.bitsToName(self.name_bits)
   }
-  print(self.song.name)
+  print(self.lseq.song.name)
 end
 
 function private:nameToBits(name, first)
@@ -153,6 +152,10 @@ function private.bitsToName(bits)
     end
   end
   return s
+end
+
+col_button[8] = function(self, row, col)
+  self.lseq:loadView('Life')
 end
 
 lib.common = {

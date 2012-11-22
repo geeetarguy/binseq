@@ -85,6 +85,9 @@ function lib:loadSong(posid)
 end
 
 function lib:loadView(name, key)
+  -- Reset animation
+  self.animate = nil
+
   local song = self.song
 
   --if name ~= 'Pattern' and not song.edit_pattern then
@@ -131,6 +134,12 @@ function lib:trigger(t)
     while e and e.t <= t do
       aseq:trigger(e)
       e = list.next
+    end
+  end
+  if t % 12 == 0 then
+    local anim = self.animate
+    if anim then
+      anim(self, t)
     end
   end
 end
