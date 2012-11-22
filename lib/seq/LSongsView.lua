@@ -18,13 +18,13 @@ local private      = {}
 private.nameToBits = seq.LHomeView.common.nameToBits
 local gridToPosid  = seq.Event.gridToPosid 
 local posidToGrid  = seq.Event.posidToGrid
-local BIT_STATE    = seq.LHomeView.common.BIT_STATE
 
 --=============================================== CONSTANTS
 
 local SONG_STATE = {
-  'LightAmber', -- has song (amber color)
+  'Off', 
   'LightGreen', -- has song (green color)
+  'LightAmber', -- has song (amber color)
   'LightRed',   -- has song (red color)
   'Green',      -- selected
 }
@@ -79,7 +79,7 @@ function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
   elseif col == 9 then
-    f = col_button[row]
+    -- pass to LSeq
   else
     -- press on grid
     f = private.pressGrid
@@ -119,67 +119,6 @@ end
 top_button[4] = function(self, row, col)
   self.toggle = not self.toggle
   self.pad:button(row, col):setState(self.toggle and 'Green' or 'Off')
-end
-
---=============================================== GRID
-function private:pressGrid(row, col)
-  local pad = self.pad
-  local song = self.song
-  local posid = gridToPosid(row, col, self.page)
-
-  if self.key == 'mixer' then
-    -- enable patterns for sequencer playback
-    local pat = song.patterns[posid]
-    if pat then
-      if pat.seq then
-        pat:setSequencer(nil)
-      else
-        -- Find sequencer for this pattern
-        private.assignSequencer(self, song, pat, col)
-      end
-      private.showButtonState(self, pat, row, col)
-    end
-
-    --if self.copy_on then
-    --  if self.event then
-    --    -- copy
-    --    e = self.seq:setEvent(posid, self.event)
-    --    e.mute = 1
-    --  else
-    --    return
-    --  end
-    --  self.copy_on = false
-    --  self.copy_btn:setState('Off')
-    --elseif self.del_on == e.posid then
-    --  -- delete
-    --  self.del_on = false
-    --  self.pad:button(0, 5):setState('Off')
-
-    --  self.seq.pattern:deleteEvent(e)
-    --  self.pad:button(row, col):setState('Off')
-    --  if e == self.event then
-    --    -- clear
-    --    self.event = nil
-    --    self.btn   = nil
-    --    self:display()
-    --  end
-    --  return
-    --elseif self.del_on then
-    --  self.del_on = e.posid
-    --  self.pad:button(row, col):setState('Red')
-    --  return
-    --end
-  else
-    -- choose pattern to edit
-    local pat = song:getOrCreatePattern(posid)
-    local last_pat = song.edit_pattern
-    song.edit_pattern = pat
-
-    if last_pat then
-      private.showButtonState(self, last_pat)
-    end
-    private.showButtonState(self, pat, row, col)
-  end
 end
 
 function private:sequencerPress(row, col)
@@ -230,9 +169,16 @@ function private:assignSequencer(song, pat, col)
 end
 --]]
 
+--=============================================== GRID
+function private:pressGrid(row, col)
+  local pad  = self.pad
+  local song = self.song
+  self.lseq:loadSong(gridToPosid(row, col, self.page))
+end
+
 function private:showButtonState(song, row, col, e)
-  if song.posid == self.lseq.song.posid then
-    self.pad:button(row, col):setState('Green')
+  if self.lseq.song and song.posid == self.lseq.song.posid then
+    self.pad:button(row, col):setState(SONG_STATE[5])
     return
   end
 
@@ -242,12 +188,12 @@ function private:showButtonState(song, row, col, e)
       return
     end
   end
-  local b = private.nameToBits(self, song, true)
+  local b = private.nameToBits(self, song.name, true)
   if e and e.off_t then
     -- + NoteOn
     b = b + 2
   end
-  self.pad:button(row, col):setState(BIT_STATE[b] + 1)
+  self.pad:button(row, col):setState(SONG_STATE[b + 1])
 end
 
 

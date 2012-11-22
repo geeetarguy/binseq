@@ -47,28 +47,32 @@ function lib.new(lseq, song)
     pad  = lseq.pad,
     -- default pagination
     page = 0,
+    song = song,
     patterns = {},
   }
-
-  -- patterns by posid
-  self.name_bits = private.nameToBits(self, song.name)
 
   return setmetatable(self, lib)
 end
 
 -- Display view content (called on load)
-function lib:display()
+function lib:display(key)
+  local song = self.song
+  if song then
+    key = song.name
+  end
+  self.name_bits = private.nameToBits(self, key or '')
+
   local pad  = self.pad
-  local song = self.lseq.song
   local bits = self.name_bits
-  local curr = (song.edit_pattern or {}).posid
   local page = self.page
   -- Clear
   pad:prepare()
   pad:clear()
   -- Display patterns
   -- Turn on 'pattern' button
-  pad:button(0, 1):setState('Red')
+  if self.song then
+    pad:button(0, 1):setState('Red')
+  end
 
   for row=1,8 do
     for col=1,8 do
@@ -107,10 +111,15 @@ function private:pressGrid(row, col)
   local b = (self.name_bits[posid] + 1) % 4
   self.name_bits[posid] = b
   self.pad:button(row, col):setState(BIT_STATE[b+1])
-  self.lseq.song:set {
-    name = private.bitsToName(self.name_bits)
-  }
-  print(self.lseq.song.name)
+  local name = private.bitsToName(self.name_bits)
+  local song = self.lseq.song
+  if song then
+    song:set {
+      name = name
+    }
+  end
+  self.key = name
+  print('==>'..name..'<==')
 end
 
 function private:nameToBits(name, first)
@@ -133,6 +142,10 @@ function private:nameToBits(name, first)
       char = char - (val * 4^delta)
       bits[posid] = val
     end
+  end
+  if first then
+    -- any color
+    return 2
   end
   return bits
 end

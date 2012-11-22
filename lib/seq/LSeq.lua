@@ -27,7 +27,7 @@ setmetatable(lib, {
 })
 
 -- seq.LSeq(...)
-function lib.new(name, db_path)
+function lib.new(name, db_paths)
   local self = {
     name = name,
     pad = seq.Launchpad(),
@@ -45,13 +45,18 @@ function lib.new(name, db_path)
 
   private.setupMidi(self)
 
-  self:loadSong(1)
+  self:loadView('Home', '   !0 * %50!0 %  4#__P')
   return self
 end
 
 function lib:loadSong(posid)
   local song = self.db:getOrCreateSong(posid)
   self.song = song
+  if song.name == '' then
+    -- new song
+    -- This is a red square in the middle.
+    song.name = '         \\ #P         '
+  end
 
   -- Prepare to be used with Launchpad views.
   song.views = {}
@@ -104,12 +109,14 @@ function lib:loadView(name, key)
     self.last_key = self.view.key
   end
 
-  local view = song.views[name]
+  local view = song and song.views[name]
   if not view then
     local t = seq['L'..name..'View']
     if t then
       view = t(self, song)
-      song.views[name] = view
+      if song then
+        song.views[name] = view
+      end
     else
       error('Could not find seq.L'..name..'View view')
     end
