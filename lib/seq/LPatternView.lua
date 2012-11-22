@@ -59,16 +59,18 @@ end
 
 -- Display view content (called on load)
 function lib:display(key)
+  -- TODO: Copy operation => copied object in LSeq and check type on display
   key = key or 'mixer'
   self.key = key
   local pad  = self.pad
   local song = self.song
-  local parts = self.patterns
   local curr = (song.edit_pattern or {}).posid
   local page = self.page
   -- Clear
   pad:prepare()
-  pad:clear()
+  for i=1,8 do
+    pad:button(0, i):setState('Off')
+  end
   self.pad:button(0, 4):setState(self.toggle and 'Green' or 'Off')
   -- Display patterns
   if key == 'pattern' then
@@ -80,19 +82,19 @@ function lib:display(key)
     end
     pad:button(1, 9):setState('Amber')
   else
-    pad:button(0, 8):setState('Amber')
-  end
-
-  for row=1,8 do
-    for col=1,8 do
-      local posid = gridToPosid(row, col, page)
-      local pat = parts[posid]
-      if pat then
-        private.showButtonState(self, pat, row, col)
-      end
+    if self.copy_on then
+      pad:button(0, 5):setState('Green')
+      pad:button(0, 8):setState('Green')
+    elseif self.del_on then
+      pad:button(0, 5):setState('Red')
+      pad:button(0, 8):setState('Red')
+    else
+      pad:button(0, 5):setState('Off')
+      pad:button(0, 8):setState('Amber')
     end
   end
   pad:commit()
+  private.showGrid(self)
 end
 
 function lib:release(row, col)
@@ -137,15 +139,13 @@ top_button[5] = function(self, row, col)
   if self.copy_on then
     self.copy_on = false
     self.del_on = true
-    self.pad:button(row, col):setState('Red')
   elseif self.del_on then
     self.del_on = false
-    self.pad:button(row, col):setState('Off')
   else
     -- enable copy
     self.copy_on = true
-    self.pad:button(row, col):setState('Green')
   end
+  self:display()
 end
 
 -- Toggle playback mode
@@ -159,8 +159,41 @@ function private:pressGrid(row, col)
   local pad = self.pad
   local song = self.song
   local posid = gridToPosid(row, col, self.page)
+  local pat = self.patterns[posid]
+                     
 
-  if self.key == 'mixer' then
+
+  if self.copy_on then
+    --=============================================== FIXME !!!
+    if song.edit_pattern then
+      -- copy
+      self.patterns[posid] = song.db:copyPattern(posid, song.edit_pattern)
+    else
+      return
+    end
+    self.copy_on = false
+    self:display()
+  elseif self.del_on == pat then
+    -- delete
+    self.del_on = true
+    pat:delete()
+    self.patterns[posid] = nil
+    if pat == song.edit_pattern then
+      -- clear
+      song.edit_pattern = nil
+    end
+    self:display()
+
+  elseif self.del_on then
+    if type(self.del_on) == 'table' then
+      private.showButtonState(self, self.del_on)
+    end
+    self.del_on = true
+    if pat then
+      self.del_on = pat
+      pad:button(row, col):setState('Red')
+    end
+  elseif self.key == 'mixer' then
     -- enable patterns for sequencer playback
     local pat = song.patterns[posid]
     if pat then
@@ -173,35 +206,6 @@ function private:pressGrid(row, col)
       private.showButtonState(self, pat, row, col)
     end
 
-    --if self.copy_on then
-    --  if self.event then
-    --    -- copy
-    --    e = self.seq:setEvent(posid, self.event)
-    --    e.mute = 1
-    --  else
-    --    return
-    --  end
-    --  self.copy_on = false
-    --  self.copy_btn:setState('Off')
-    --elseif self.del_on == e.posid then
-    --  -- delete
-    --  self.del_on = false
-    --  self.pad:button(0, 5):setState('Off')
-
-    --  self.seq.pattern:deleteEvent(e)
-    --  self.pad:button(row, col):setState('Off')
-    --  if e == self.event then
-    --    -- clear
-    --    self.event = nil
-    --    self.btn   = nil
-    --    self:display()
-    --  end
-    --  return
-    --elseif self.del_on then
-    --  self.del_on = e.posid
-    --  self.pad:button(row, col):setState('Red')
-    --  return
-    --end
   else
     -- choose pattern to edit
     local pat = song:getOrCreatePattern(posid)
@@ -251,7 +255,7 @@ function private:showButtonState(pat, row, col, e)
     end
   end
   local b
-  if self.key == 'mixer' then
+  if self.key == 'mixer' and not self.copy_on and not self.del_on then
     b = pat.seq and 3 or 2
   else
     b = self.song.edit_pattern == pat and 3 or 2
@@ -268,7 +272,6 @@ function private:assignSequencer(song, pat, col)
   if not col then
     local r, c = posidToGrid(pat.posid, 0)
     col = c
-    print('assignSequencer', pat.posid, col, p)
   end
 
   local seq
@@ -280,5 +283,23 @@ function private:assignSequencer(song, pat, col)
   end
   if seq then
     pat:setSequencer(seq)
+  end
+end
+
+function private:showGrid()
+  local page  = self.page
+  local parts = self.patterns
+  local pad   = self.pad
+
+  for row=1,8 do
+    for col=1,8 do
+      local posid = gridToPosid(row, col, page)
+      local pat = parts[posid]
+      if pat then
+        private.showButtonState(self, pat, row, col)
+      else
+        pad:button(row, col):setState('Off')
+      end
+    end
   end
 end
