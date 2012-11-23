@@ -284,6 +284,18 @@ function should.storeMute()
   assertEqual(0, p2.mute)
 end
 
+function should.storeCtrl()
+  local db = seq.PresetDb(':memory:')
+  -- row, col, page, pattern_id
+  local p1 = db:getOrCreateEvent(5, 17)
+  assertNil(p1.ctrl)
+  -- auto save
+  p1:set {ctrl = 20}
+
+  local p2 = db:getEvent(5, 17)
+  assertEqual(20, p2.ctrl)
+end
+
 function should.deleteEvent()
   local db = seq.PresetDb(':memory:')
   -- row, col, page

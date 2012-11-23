@@ -81,7 +81,9 @@ function lib:set(def)
           self.off_t = self.off_t - self.length + value
         end
         need_schedule = true
-      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' then
+      elseif key == 'ctrl' then
+        need_schedule = true
+      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' or key == 'ctrl' then
         need_schedule = true
       end
       self[key] = value
@@ -102,7 +104,7 @@ function lib:set(def)
   end
 
   if scheduled_type and need_schedule then
-    aseq:schedule(self)
+    aseq:reSchedule(self)
   elseif not scheduled_type and self.prev then
     aseq:removeEvent(self)
   end
@@ -124,6 +126,7 @@ end
 -- |-------|--- p -------|
 -- t = time in midi clock since start of song.
 function lib:nextTrigger(t, Gs, Gm, not_now)
+  -- FIXME If we are between NoteOn and NoteOff: trigger now (not for ChordChanger)
   local m = Gm or self.loop
   local p = self.position - Gs
   -- off_t is off time (set during NoteOn trigger)
@@ -191,6 +194,8 @@ function lib:nextTrigger(t, Gs, Gm, not_now)
 end
 
 -- Return midi event to trigger
+local next = next
+local WEAK = {__mode="k"}
 function lib:trigger(chan)
   local chan = chan or 1
   if self.off_t then
@@ -207,36 +212,61 @@ function lib:trigger(chan)
         n[1] = base
       end
       return off
-    else
+    elseif self.off_n then
       return base, self.off_n, velo
     end
-  else
-    --=============================================== NoteOn
-    local base = chan - 1 + 0x90
-    local velo = self.velocity
-    self.off_t = self.t + self.length
 
-    if self.chord_player then
-      -- Chord
-      local chord = self.pat:chord(self.t)
-      if not chord then
-        -- Nothing to play...
-        self.off_t = nil
-        return nil
+    -- Ctrl ramp was ON, turn OFF.
+    local list = self.off_ctrl
+    if list then
+      list[self] = nil
+    end
+  else
+    local ctrl = e.ctrl
+    if ctrl then
+      --=============================================== Ctrl On
+      local ctrls = self.seq and self.seq.ctrls
+
+      if ctrls then
+        -- Add to control change ramps
+        local list = ctrls[ctrl]
+        -- Add to ctrls.
+        if not list then
+          list = setmetatable({}, WEAK)
+          ctrls[ctrl] = list
+        end
+        list[self] = true
+        -- In case of reschedule, NoteOff.
+        self.off_ctrl = list
       end
-      local chord_notes = chord.notes or {chord.note}
-      local notes = {}
-      for _, n in ipairs(chord_notes) do
-        table.insert(notes, {base, n, velo})
-      end
-      -- Make sure the NoteOff message uses the same note value
-      self.off_n = notes
-      return notes
     else
-      -- Single note
-      -- Make sure the NoteOff message uses the same note value
-      self.off_n = self.note
-      return base, self.note, self.velocity
+      --=============================================== NoteOn
+      local base = chan - 1 + 0x90
+      local velo = self.velocity
+      self.off_t = self.t + self.length
+
+      if self.chord_player then
+        -- Chord
+        local chord = self.pat:chord(self.t)
+        if not chord then
+          -- Nothing to play...
+          self.off_t = nil
+          return nil
+        end
+        local chord_notes = chord.notes or {chord.note}
+        local notes = {}
+        for _, n in ipairs(chord_notes) do
+          table.insert(notes, {base, n, velo})
+        end
+        -- Make sure the NoteOff message uses the same note value
+        self.off_n = notes
+        return notes
+      else
+        -- Single note
+        -- Make sure the NoteOff message uses the same note value
+        self.off_n = self.note
+        return base, self.note, self.velocity
+      end
     end
   end
 end
@@ -283,6 +313,7 @@ function lib:save()
 end
 
 function lib:delete()
+  -- FIXME: make sure event removed from sequencer and pattern...
   local db = self.db
   assert(db, 'Cannot delete event without database')
   db:deleteEvent(self)

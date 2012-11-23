@@ -88,6 +88,7 @@ function should.moveOnTrigger()
   local e = p:getOrCreateEvent(1)
   e:set {
     position = 14,
+    mute = 0,
   }
   assertEqual(0, aseq.t)
   aseq:trigger(e)
@@ -328,6 +329,38 @@ function should.setSequencerId()
   -- saved version
   p = song.db:getPattern(p.posid, song.id)
   assertEqual(s.id, p.sequencer_id)
+end
+
+function should.scheduleCtrl()
+  local song = seq.Song(':memory:', 1)
+  local aseq = song:getOrCreateSequencer(1)
+  local pat  = song:getOrCreatePattern(1)
+  aseq:enablePattern(1)
+  local e = pat:getOrCreateEvent(1)
+
+  assertValueEqual({}, aseq.ctrls)
+  e:set {
+    ctrl = 20,
+    position = 0,  -- events 0, 96, 192
+    loop = 96,
+    mute = 0,
+  }
+
+  -- Not added yet (only added during note On to Off).
+  assertValueEqual({}, aseq.ctrls)
+
+  aseq:trigger(e)
+
+  -- Added to ctrls
+  assertTrue(aseq.ctrls[20][e])
+
+  e:set {
+    ctrl = 22,
+  }
+
+  -- Moved (dummy 0 value replaced because note was ON)
+  assertNil(aseq.ctrls[20])
+  assertEqual(e, aseq.ctrls[22][1])
 end
 
 test.all()

@@ -15,6 +15,13 @@ local col_press     = {}
 local col_release   = {}
 local m             = seq.LMainView.common
 local PARAMS        = m.PARAMS
+lib.POS = {
+  SONG = 1,
+  COPY = 2,
+  PAGE = 3,
+  -- 4
+  TOGGLE = 5,
+}
 
 --=============================================== CONSTANTS
 local SEQ_BITS = {4, 2, 1}
@@ -135,14 +142,9 @@ end
 function lib:trigger(t)
   for _, aseq in pairs(self.song.sequencers) do
     -- Loop through all sequencers
-    aseq.t = t
-    list = aseq.list
-    local e = list.next
-    while e and e.t <= t do
-      aseq:trigger(e)
-      e = list.next
-    end
+    aseq:step(t)
   end
+
   if t % 12 == 0 then
     local anim = self.animate
     if anim then
@@ -220,14 +222,19 @@ function private:setupMidi()
   midiout:virtualPort(self.name)
 
   self.midiout = midiout
-  function self.playback(aseq, e)
+  function self.playback(aseq, e, b, c)
     -- Playback function
     -- Important to trigger so that NoteOff is registered.
-    midiout:send(e:trigger(aseq.channel))
-    local view = self.view
-    local f = view.setEventState
-    if f then
-      f(view, e)
+    if c then
+      -- raw midi data (e == first byte)
+      midiout:send(e, b, c)
+    else
+      midiout:send(e:trigger(aseq.channel))
+      local view = self.view
+      local f = view.setEventState
+      if f then
+        f(view, e)
+      end
     end
   end
 

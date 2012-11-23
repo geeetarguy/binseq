@@ -23,6 +23,7 @@ local lib = {type = 'seq.Sequencer'}
 lib.__index      = lib
 seq.Sequencer    = lib
 local private    = {}
+local CTRL_EVERY_MS = 100 -- 10 Hz
 
 --=============================================== CONSTANTS
 
@@ -41,6 +42,8 @@ function lib.new(def)
     list = {},
     -- Active patterns by posid
     patterns = {},
+    -- List of active controls by ctrl
+    ctrls    = {},
     -- Global alterations
     note     = 0,
     velocity = 0,
@@ -147,6 +150,16 @@ function lib:move(t)
   end
 end
 
+function lib:reSchedule(e, not_now)
+  if e.off_t then
+    -- Event edited while ON
+    -- Trigger off
+    local f = self.playback
+    if f then f(self, e) end
+  end
+  self:schedule(e, not_now)
+end
+
 function lib:schedule(e, not_now)
   e:nextTrigger(self.t, self.position, self.loop_v, not_now)
   if e.t then
@@ -154,13 +167,30 @@ function lib:schedule(e, not_now)
   end
 end
 
+function lib:step(t)
+  self.t = t
+  local list = self.list
+  local e = list.next
+  local trig = self.trigger
+  while e and e.t <= t do
+    trig(self, e)
+    e = list.next
+  end
+
+  local last_ct = self.last_ct or 0
+  local ct = now()
+  if ct >= last_ct + CTRL_EVERY_MS then
+    self.last_ct = ct
+    private.controlRamps(self, t)
+  end
+end
+
 function lib:trigger(e, skip_schedule)
   -- 1. Trigger event
   if e.mute == 0 or e.off_t then
+    -- Not muted or NoteOff
     local f = self.playback
-    if f then
-      f(self, e)
-    end
+    if f then f(self, e) end
   end
   -- Keep last trigger time to reschedule event on edit/create.
   self.t = e.t
@@ -171,6 +201,11 @@ function lib:trigger(e, skip_schedule)
 end
 
 function lib:removeEvent(e)
+  if e.off_t then
+    local f = self.playback
+    if f then f(self, e) end
+  end
+
   -- Remove from previous list
   local p = e.prev
   local n = e.next
@@ -228,6 +263,36 @@ function private.insertInList(list, e)
       else
         l = n
       end
+    end
+  end
+end
+
+function private:controlRamps(t)
+  local playback = self.playback
+  local base = self.channel + 0xB0 - 1
+  for ctrl, list in pairs(self.ctrls) do
+    local v = -1
+    for e, _ in pairs(list) do
+      -- For each control changers for this ctrl value
+      local min, max = e.velocity, e.note
+      if min > v or max > v then
+        -- Compute ramp
+        local end_t, len = e.off_t, e.length
+        local slope = (max - min) / len
+        local e_v = min + slope * (t - end_t + len)
+        if e_v > v then
+          v = e_v
+          if v == 127 then
+            break
+          end
+        end
+      end
+    end
+    if v == -1 then
+      -- empty
+      self.ctrls[ctrl] = nil
+    else
+      playback(base, ctrl, v)
     end
   end
 end
