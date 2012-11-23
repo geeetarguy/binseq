@@ -60,7 +60,7 @@ function lib:setSequencer(aseq)
   if aseq 
     and self.mute ~= 1 
     and not self.is_chord then
-    aseq:schedule(self)
+    aseq:reSchedule(self)
   end
 end
 
@@ -81,8 +81,6 @@ function lib:set(def)
           self.off_t = self.off_t - self.length + value
         end
         need_schedule = true
-      elseif key == 'ctrl' then
-        need_schedule = true
       elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' or key == 'ctrl' then
         need_schedule = true
       end
@@ -93,9 +91,6 @@ function lib:set(def)
   if self.db then
     self:save()
   end
-
-
-
 
   local scheduled_type = private.computeType(self)
   local aseq = self.seq
@@ -219,10 +214,13 @@ function lib:trigger(chan)
     -- Ctrl ramp was ON, turn OFF.
     local list = self.off_ctrl
     if list then
+      self.off_ctrl = nil
       list[self] = nil
     end
   else
-    local ctrl = e.ctrl
+    -- Play Ctrl or Note
+    self.off_t = self.t + self.length
+    local ctrl = self.ctrl
     if ctrl then
       --=============================================== Ctrl On
       local ctrls = self.seq and self.seq.ctrls
@@ -243,7 +241,6 @@ function lib:trigger(chan)
       --=============================================== NoteOn
       local base = chan - 1 + 0x90
       local velo = self.velocity
-      self.off_t = self.t + self.length
 
       if self.chord_player then
         -- Chord

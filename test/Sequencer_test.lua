@@ -331,25 +331,47 @@ function should.setSequencerId()
   assertEqual(s.id, p.sequencer_id)
 end
 
-function should.scheduleCtrl()
+function should.scheduleCtrl(t)
   local song = seq.Song(':memory:', 1)
   local aseq = song:getOrCreateSequencer(1)
   local pat  = song:getOrCreatePattern(1)
   aseq:enablePattern(1)
+  function aseq:playback(e, b, c)
+    if c then
+      t.midi = {e, b, c}
+    else
+      e:trigger(aseq.channel)
+      t.played = e
+    end
+  end
+
   local e = pat:getOrCreateEvent(1)
 
   assertValueEqual({}, aseq.ctrls)
   e:set {
     ctrl = 20,
+    velocity = 30, -- = min
+    note     = 60, -- = max
     position = 0,  -- events 0, 96, 192
     loop = 96,
+    -- not muted
     mute = 0,
   }
 
   -- Not added yet (only added during note On to Off).
   assertValueEqual({}, aseq.ctrls)
 
-  aseq:trigger(e)
+  aseq:step(0)
+  assertValueEqual({
+    0xB0,
+    20,
+    30,
+  }, t.midi)
+  t.midi = nil
+
+  assertEqual(6, e.off_t)
+
+  assertTrue(e.off_ctrl)
 
   -- Added to ctrls
   assertTrue(aseq.ctrls[20][e])
@@ -358,9 +380,39 @@ function should.scheduleCtrl()
     ctrl = 22,
   }
 
-  -- Moved (dummy 0 value replaced because note was ON)
-  assertNil(aseq.ctrls[20])
-  assertEqual(e, aseq.ctrls[22][1])
+  -- Removed from list
+  assertNil(aseq.ctrls[20][e])
+  assertNil(e.off_t)
+  assertNil(e.off_ctrl)
+  -- Not added until next trigger
+  assertNil(aseq.ctrls[22])
+
+  -- cheat last_t
+  aseq.last_ct = -1000
+  aseq:step(96)
+
+  assertTrue(aseq.ctrls[22][e])
+
+  assertValueEqual({
+    0xB0,
+    22,
+    30,
+  }, t.midi)
+  t.midi = nil
+
+  -- cheat last_ct (used to not send controls faster then 10Hz)
+  aseq.last_ct = -1000
+  -- Control ramp
+  aseq:step(99) -- 96 + 3 (half length)
+  assertValueEqual({
+    0xB0,
+    22,
+    45,
+  }, t.midi)
+
+  aseq:step(102)
+  -- Removed
+  assertNil(aseq.ctrls[22][e])
 end
 
 test.all()

@@ -81,9 +81,9 @@ function should.computeTriggerTimeWithGlobalLoop()
   assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
 end
 
-function should.schedule(t)
+function should.reSchedule(t)
   local aseq = {}
-  function aseq:schedule(e)
+  function aseq:reSchedule(e)
     self.e = e
   end
 
@@ -91,11 +91,14 @@ function should.schedule(t)
     position = 48,
     mute = 0,
   }
+  -- Need to be part of a pattern to be scheduled.
+  e.pat = {}
+
   e:setSequencer(aseq)
   assertEqual(e, aseq.e)
 
   aseq.e = nil
-  e:set {position = 24}
+  e:set {position = 12}
   assertEqual(e, aseq.e)
 
   aseq.e = nil

@@ -37,7 +37,8 @@ setmetatable(lib, {
 -- seq.Sequencer(...)
 function lib.new(def)
   local self = {
-    t    = 0,
+    t        = 0,
+    channel  = 1,
     -- Playback list
     list = {},
     -- Active patterns by posid
@@ -177,7 +178,7 @@ function lib:step(t)
     e = list.next
   end
 
-  local last_ct = self.last_ct or 0
+  local last_ct = self.last_ct or -1000
   local ct = now()
   if ct >= last_ct + CTRL_EVERY_MS then
     self.last_ct = ct
@@ -271,19 +272,22 @@ function private:controlRamps(t)
   local playback = self.playback
   local base = self.channel + 0xB0 - 1
   for ctrl, list in pairs(self.ctrls) do
+    local last = list._last
     local v = -1
     for e, _ in pairs(list) do
-      -- For each control changers for this ctrl value
-      local min, max = e.velocity, e.note
-      if min > v or max > v then
-        -- Compute ramp
-        local end_t, len = e.off_t, e.length
-        local slope = (max - min) / len
-        local e_v = min + slope * (t - end_t + len)
-        if e_v > v then
-          v = e_v
-          if v == 127 then
-            break
+      if e ~= '_last' then
+        -- For each control changers for this ctrl value
+        local min, max = e.velocity, e.note
+        if min > v or max > v then
+          -- Compute ramp
+          local end_t, len = e.off_t, e.length
+          local slope = (max - min) / len
+          local e_v = min + slope * (t - end_t + len)
+          if e_v > v then
+            v = e_v
+            if v == 127 then
+              break
+            end
           end
         end
       end
@@ -291,8 +295,8 @@ function private:controlRamps(t)
     if v == -1 then
       -- empty
       self.ctrls[ctrl] = nil
-    else
-      playback(base, ctrl, v)
+    elseif v ~= last then
+      playback(self, base, ctrl, v)
     end
   end
 end
