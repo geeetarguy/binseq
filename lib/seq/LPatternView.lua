@@ -20,6 +20,7 @@ local private       = {}
 local m             = seq.LMainView.common
 local gridToPosid   = seq.Event.gridToPosid 
 local posidToGrid   = seq.Event.posidToGrid
+local POS           = m.POS
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
@@ -66,34 +67,33 @@ function lib:display(key)
   local song = self.song
   local curr = (song.edit_pattern or {}).posid
   local page = self.page
-  -- Clear
-  pad:prepare()
-  for i=1,8 do
-    pad:button(0, i):setState('Off')
-  end
-  self.pad:button(0, 4):setState(self.toggle and 'Green' or 'Off')
-  -- Display patterns
-  if key == 'pattern' then
-    -- Turn on 'sequencer' buttons
-    for col=1,8 do
+
+  for col=1,8 do
+    if key == 'pattern' then
       if song.sequencers[col] then
         pad:button(0, col):setState('Green')
+      else
+        pad:button(0, col):setState('Off')
       end
-    end
-    pad:button(1, 9):setState('Amber')
-  else
-    if self.copy_on then
-      pad:button(0, 5):setState('Green')
-      pad:button(0, 8):setState('Green')
-    elseif self.del_on then
-      pad:button(0, 5):setState('Red')
-      pad:button(0, 8):setState('Red')
+    elseif col == POS.COPY then
+      pad:button(0, col):setState(self.copy_on and 'Green' or self.del_on and 'Red' or 'Off')
+    elseif col == POS.TOGGLE then
+      pad:button(0, col):setState(self.toggle and 'Green' or 'Off')
+    elseif col == POS.MIXER then
+      pad:button(0, col):setState('Amber')
     else
-      pad:button(0, 5):setState('Off')
-      pad:button(0, 8):setState('Amber')
+      pad:button(0, col):setState('Off')
     end
   end
-  pad:commit()
+
+  for row=1,8 do
+    if row == POS.SEQ and key == 'pattern' then
+      pad:button(row, 9):setState('Amber')
+    else
+      pad:button(row, 9):setState('Off')
+    end
+  end 
+  
   private.showGrid(self)
 end
 
@@ -135,7 +135,7 @@ end
 
 --=============================================== TOP BUTTONS
 -- Copy/Del pattern
-top_button[5] = function(self, row, col)
+top_button[POS.COPY] = function(self, row, col)
   if self.copy_on then
     self.copy_on = false
     self.del_on = true
@@ -149,7 +149,7 @@ top_button[5] = function(self, row, col)
 end
 
 -- Toggle playback mode
-top_button[4] = function(self, row, col)
+top_button[POS.TOGGLE] = function(self, row, col)
   self.toggle = not self.toggle
   self.pad:button(row, col):setState(self.toggle and 'Green' or 'Off')
 end
@@ -163,7 +163,7 @@ function private:pressGrid(row, col)
                      
 
 
-  if self.copy_on then
+  if false and self.copy_on then
     --=============================================== FIXME !!!
     if song.edit_pattern then
       -- copy
@@ -173,7 +173,7 @@ function private:pressGrid(row, col)
     end
     self.copy_on = false
     self:display()
-  elseif self.del_on == pat then
+  elseif false and self.del_on == pat then
     -- delete
     self.del_on = true
     pat:delete()
@@ -184,7 +184,7 @@ function private:pressGrid(row, col)
     end
     self:display()
 
-  elseif self.del_on then
+  elseif false and self.del_on then
     if type(self.del_on) == 'table' then
       private.showButtonState(self, self.del_on)
     end
@@ -208,6 +208,7 @@ function private:pressGrid(row, col)
 
   else
     -- choose pattern to edit
+    print(posid, 'POSID')
     local pat = song:getOrCreatePattern(posid)
     local last_pat = song.edit_pattern
     song.edit_pattern = pat

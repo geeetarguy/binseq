@@ -23,7 +23,7 @@ local lib = {type = 'seq.Sequencer'}
 lib.__index      = lib
 seq.Sequencer    = lib
 local private    = {}
-local CTRL_EVERY_MS = 100 -- 10 Hz
+local CTRL_EVERY_MS = 5 -- 200 Hz
 
 --=============================================== CONSTANTS
 
@@ -128,6 +128,12 @@ function lib:allOff()
       self:trigger(e, true)
     end
     e = e.next
+  end
+
+  local playback = self.playback
+  local base = self.channel + 0xB0 - 1
+  for ctrl, list in pairs(self.ctrls) do
+    playback(self, base, ctrl, 0)
   end
 end
 
@@ -275,7 +281,7 @@ function private:controlRamps(t)
     local last = list._last
     local v = -1
     for e, _ in pairs(list) do
-      if e ~= '_last' then
+      if e ~= '_last' and e.off_t then
         -- For each control changers for this ctrl value
         local min, max = e.velocity, e.note
         if min > v or max > v then
@@ -294,9 +300,13 @@ function private:controlRamps(t)
     end
     if v == -1 then
       -- empty
+      playback(self, base, ctrl, 0)
       self.ctrls[ctrl] = nil
-    elseif v ~= last then
-      playback(self, base, ctrl, v)
+    else
+      v = math.floor(v + 0.5)
+      if v ~= last then
+        playback(self, base, ctrl, v)
+      end
     end
   end
 end

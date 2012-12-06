@@ -4780,7 +4780,7 @@ parameters}</string>
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
 
-\f0\b\fs22 \cf0 more}</string>
+\f0\b\fs22 \cf0 extra}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -5000,7 +5000,7 @@ parameters}</string>
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
 
-\f0\b\fs22 \cf0 patter info}</string>
+\f0\b\fs22 \cf0 pattern info}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -7384,7 +7384,7 @@ parameters}</string>
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2012-11-23 08:36:27 +0000</string>
+	<string>2012-11-23 19:40:03 +0000</string>
 	<key>Modifier</key>
 	<string>Gaspard Bucher</string>
 	<key>NotesVisible</key>
@@ -7465,7 +7465,7 @@ parameters}</string>
 		<key>ExpandedCanvases</key>
 		<array/>
 		<key>Frame</key>
-		<string>{{179, 4}, {1345, 1024}}</string>
+		<string>{{307, 154}, {1345, 1024}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -7479,7 +7479,7 @@ parameters}</string>
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{-202, 24}, {1210, 885}}</string>
+		<string>{{-195, 24}, {1196, 885}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>

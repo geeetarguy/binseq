@@ -81,7 +81,12 @@ function lib:set(def)
           self.off_t = self.off_t - self.length + value
         end
         need_schedule = true
-      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' or key == 'ctrl' then
+      elseif key == 'ctrl' then
+        if value == 0 then
+          value = nil
+        end
+        need_schedule = true
+      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' then
         need_schedule = true
       end
       self[key] = value
@@ -351,7 +356,7 @@ function private:computeType()
 
     local remove_from_changers = self.chord_changer
 
-    if self.note == 0 then
+    if self.note == 0 and not self.ctrl then
       if self.velocity == 0 then
         --=============================================== Chord changer
         if not self.chord_changer then

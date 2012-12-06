@@ -20,29 +20,42 @@ setmetatable(lib, {
 })
 
 -- seq.Launchpad(...)
-function lib.new()
+function lib.new(port_name)
   local self = {
-    lin = midi.In('Launchpad'),
-    out = midi.Out('Launchpad'),
     buttons = {},
     copy_bit = 4,
   }
-  self.finalizer = lk.Finalizer(function()
-    self:clear()
+
+  setmetatable(self, lib)
+  if self:connect(port_name) then
+    return self
+  end
+end
+
+
+-- Try to connect to a port name. If the connection fails, return false.
+function lib:connect(port_name)
+  local port_name = port_name or 'Launchpad'
+  local ok = pcall(function()
+    self.lin = midi.In(port_name)
+    self.out = midi.Out(port_name)
   end)
+
+  if not ok then return false end
 
   function self.lin.rawReceive(lin, a, b, c)
     self:receiveMidi(a, b, c)
   end
-  setmetatable(self, lib)
-  -- clear Launchpad
+  -- Clear Launchpad
   self:clear()
+  -- Prepare double buffer mode
   self.out:send(176, 0, 48)
-  -- -- set blink mode
-  -- self:blink('auto')
-  -- make sure display/update buffers are in 'commit' mode
-  -- self:commit()
-  return self
+
+  -- We are connected: setup finalizer.
+  self.finalizer = lk.Finalizer(function()
+    self:clear()
+  end)
+  return true
 end
 
 function lib:clear()

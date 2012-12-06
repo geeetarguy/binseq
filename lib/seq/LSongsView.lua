@@ -68,6 +68,8 @@ function lib:display()
       local song  = songs[posid]
       if song then
         private.showButtonState(self, song, row, col)
+      else
+        pad:button(row, col):setState 'Off'
       end
     end
   end

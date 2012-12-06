@@ -49,6 +49,31 @@ function lib.new(path)
   return self
 end
 
+function lib:backup()
+  return self.db:backup()
+end
+
+function lib:restore(data)
+  return self.db:restore(data)
+end
+--==========================================================  GLOBAL
+
+function lib:setGlobals(data)
+  local stmt = self.update_globals
+  stmt:bind_names {
+    data = yaml.dump(data)
+  }
+  stmt:step()
+  stmt:reset()
+end
+
+function lib:getGlobals()
+  local stmt = self.read_globals
+  local row = stmt:first_row()
+  stmt:reset()
+  return yaml.load(row[1])
+end
+
 --==========================================================  SONGS
 
 ------------------------------------------------------------  CREATE
@@ -529,6 +554,12 @@ lib.MIGRATIONS = {
       CREATE UNIQUE INDEX songs_idx ON songs(id);
       CREATE UNIQUE INDEX songs_posidx ON songs(posid);
    ]]},
+  {name = 'globals', 
+   sql  = [[
+      /* Globals table */
+      CREATE TABLE global (id INTEGER PRIMARY KEY, data TEXT);
+      INSERT INTO global VALUES (null, "{}");
+   ]]},
 }
 
 -- Prepare the database for events
@@ -690,6 +721,16 @@ function private:prepareDb(is_new)
     db:prepare 'DELETE FROM songs WHERE id = :id;',
     nil, -- to avoid second argument from db:prepare
   }
+
+  --==========================================================  Global
+  ------------------------------------------------------------  READ
+  self.read_globals = db:prepare [[
+    SELECT data FROM global WHERE id = 1;
+  ]]
+  ------------------------------------------------------------  UPDATE
+  self.update_globals = db:prepare [[
+    UPDATE global SET data = :data WHERE id = 1;
+  ]]
 end
 
 --==========================================================  PRIVATE

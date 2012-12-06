@@ -305,4 +305,20 @@ function should.deleteEvent()
   assertNil(e)
 end
 
+function should.saveAndRestoreGlobal()
+  local db = seq.PresetDb ':memory:'
+  assertValueEqual({}, db:getGlobals())
+  db:setGlobals {
+    foo = 'bar',
+    baz = 'bom',
+    song_id = 4,
+  }
+
+  assertValueEqual({
+    foo = 'bar',
+    baz = 'bom',
+    song_id = 4,
+  }, db:getGlobals())
+end
+
 test.all()

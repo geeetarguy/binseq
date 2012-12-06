@@ -23,7 +23,7 @@ end
 function withUser.should.communicateWithLaunchpad(t)
   local l = seq.Launchpad()
   local btn = l:button(1,1)
-  btn:setstate 'BlinkGreen'
+  btn:setState 'BlinkGreen'
   function btn:press()
     self:setState('Amber')
   end

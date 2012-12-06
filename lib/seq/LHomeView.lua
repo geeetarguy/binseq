@@ -60,7 +60,8 @@ function lib:display(key)
   if song then
     key = song.name
   end
-  self.name_bits = private.nameToBits(self, key or '')
+  self.key = key or self.key
+  self.name_bits = private.nameToBits(self, self.key or '')
 
   local pad  = self.pad
   local bits = self.name_bits
