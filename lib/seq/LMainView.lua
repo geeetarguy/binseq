@@ -560,11 +560,16 @@ function private:loadList(key, e, list, row)
     self.bits[key] = b
   end
   b[row] = 'multi'
+  for i = 1,8 do
   for i, _ in ipairs(list) do
-    if i == idx then
-      pad:button(row, i):setState('Green')
+    if list[i] then
+      if i == idx then
+        pad:button(row, i):setState('Green')
+      else
+        pad:button(row, i):setState('LightGreen')
+      end
     else
-      pad:button(row, i):setState('LightGreen')
+      pad:button(row, i):setState('Off')
     end
   end
 end
