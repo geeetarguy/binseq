@@ -1,27 +1,27 @@
 --[[------------------------------------------------------
 
-  test seq.Launchpad
+  test binseq.Launchpad
   --------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.Launchpad')
+local should = test.Suite('binseq.Launchpad')
 local withUser = should:testWithUser()
 
 function should.autoLoad()
-  local l = seq.Launchpad
+  local l = binseq.Launchpad
   assertType('table', l)
 end
 
 function should.returnButton()
-  local l = seq.Launchpad()
+  local l = binseq.Launchpad()
   local b = l:button(1,1)
-  assertEqual('seq.LButton', b.type)
+  assertEqual('binseq.LButton', b.type)
 end
 
 function withUser.should.communicateWithLaunchpad(t)
-  local l = seq.Launchpad()
+  local l = binseq.Launchpad()
   local btn = l:button(1,1)
   btn:setState 'BlinkGreen'
   function btn:press()
@@ -40,7 +40,7 @@ function withUser.should.communicateWithLaunchpad(t)
 end
 
 function should.setDefaultButtonAction(t)
-  local l = seq.Launchpad()
+  local l = binseq.Launchpad()
   function l:press(row, col)
     local btn = l:button(row, col)
     btn:setState('Amber')

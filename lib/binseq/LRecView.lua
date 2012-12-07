@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LRecView
-  ------------
+  binseq.LRecView
+  ---------------
 
   This view shows the following elements:
 
@@ -9,17 +9,17 @@
   [ Green = playing, Red = playing + auto-save, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LRecView', name = 'Rec'}
+local lib = {type = 'binseq.LRecView', name = 'Rec'}
 lib.__index         = lib
-seq.LRecView        = lib
+binseq.LRecView        = lib
 -- Last column operation to function
 local col_button    = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
-local m             = seq.LMainView.common
-local gridToPosid   = seq.Event.gridToPosid 
-local posidToGrid   = seq.Event.posidToGrid
+local m             = binseq.LMainView.common
+local gridToPosid   = binseq.Event.gridToPosid 
+local posidToGrid   = binseq.Event.posidToGrid
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
@@ -33,7 +33,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LRecView(...)
+-- binseq.LRecView(...)
 function lib.new(lseq, seq)
   local self = {
     lseq = lseq,
@@ -193,7 +193,7 @@ function private:pressGrid(row, col)
 
   local posid = gridToPosid(row, col, self.page)
 
-  local e = seq.pattern.events[posid]
+  local e = binseq.pattern.events[posid]
   if rec_events[posid] then
     -- remove
     private.removeFromList(self, rec_events, rec_list, e)

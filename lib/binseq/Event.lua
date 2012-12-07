@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.Event
-  ---------
+  binseq.Event
+  ------------
 
   A pattern is made of many events. An event contains
   the following information:
@@ -14,9 +14,9 @@
     * velocity (note velocity)
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.Event'}
+local lib = {type = 'binseq.Event'}
 lib.__index     = lib
-seq.Event       = lib
+binseq.Event       = lib
 local private   = {}
 local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity', 'mute'}
 
@@ -27,7 +27,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.Event(...)
+-- binseq.Event(...)
 function lib.new(def)
   local self = {
     mute     = 1,
@@ -67,7 +67,7 @@ end
 -- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
   local need_schedule = false
-  if def.type == 'seq.Event' then
+  if def.type == 'binseq.Event' then
     -- copy
     need_schedule = true
     for _, key in ipairs(COPY_KEYS) do

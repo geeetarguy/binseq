@@ -1,12 +1,12 @@
 # --------------------------------------------------------------
-#  seq
+#  binseq
 #
 #  Musical sequencer with novation Launchpad support.
 #
 #  provides:
-#    seq.lua
+#    binseq.lua
 # --------------------------------------------------------------
-set(MODULE_NAME dummy)
+set(MODULE_NAME binseq)
 
 # --------------------------------------------------------------
 #  install                                     

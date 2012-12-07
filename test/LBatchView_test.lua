@@ -1,16 +1,16 @@
 --[[------------------------------------------------------
 
-  test seq.LBatchView
+  test binseq.LBatchView
   ------------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LBatchView')
+local should = test.Suite('binseq.LBatchView')
 local withUser = should:testWithUser()
 
 function should.autoLoad()
-  local e = seq.LBatchView
+  local e = binseq.LBatchView
   assertType('table', e)
 end
 

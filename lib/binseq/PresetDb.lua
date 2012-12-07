@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.PresetDb
-  ------------
+  binseq.PresetDb
+  ---------------
 
   A database containing presets (patterns) and events in
   these patterns.
@@ -14,9 +14,9 @@
   * etc.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.PresetDb'}
+local lib = {type = 'binseq.PresetDb'}
 lib.__index     = lib
-seq.PresetDb    = lib
+binseq.PresetDb    = lib
 local private   = {}
 local DONE      = sqlite3.DONE
 math.randomseed(os.time())
@@ -28,7 +28,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.PresetDb(...)
+-- binseq.PresetDb(...)
 function lib.new(path)
   local is_new
   local self = {}
@@ -87,7 +87,7 @@ function lib:getOrCreateSong(posid, name)
   end
 
   local stmt = self.create_song
-  local p = seq.Song {posid = posid, name = name or ''}
+  local p = binseq.Song {posid = posid, name = name or ''}
   p.posid = posid
   p.db = self
   stmt:bind_names(p)
@@ -191,7 +191,7 @@ function lib:getOrCreatePattern(posid, song_id)
   end
 
   local stmt = self.create_pattern
-  p = seq.Pattern {
+  p = binseq.Pattern {
     song_id = song_id,
     posid   = posid
   }
@@ -300,7 +300,7 @@ function lib:getOrCreateSequencer(posid, song_id)
   end
 
   local stmt = self.create_sequencer
-  local p = seq.Sequencer {
+  local p = binseq.Sequencer {
     posid   = posid,
     song_id = song_id,
   }
@@ -446,7 +446,7 @@ function lib:getOrCreateEvent(posid, pattern_id)
   end
 
   local stmt = self.create_event
-  local e = seq.Event {
+  local e = binseq.Event {
     posid = posid,
     pattern_id = pattern_id,
   }
@@ -743,7 +743,7 @@ function private:patternFromRow(row)
   else
     data = {}
   end
-  local p = seq.Pattern {
+  local p = binseq.Pattern {
     id           = row[1],
     song_id      = row[2],
     sequencer_id = row[3],
@@ -762,7 +762,7 @@ function private:eventFromRow(row)
   else
     data = {}
   end
-  local e = seq.Event {
+  local e = binseq.Event {
     id           = row[1],
     pattern_id   = row[2],
     posid        = row[3],
@@ -797,7 +797,7 @@ function private:sequencerFromRow(row)
   else
     data = {}
   end
-  local s = seq.Sequencer {
+  local s = binseq.Sequencer {
     id       = row[1],
     song_id  = row[2],
     posid    = row[3],
@@ -856,7 +856,7 @@ function private:migrate()
 end
 
 function private:songFromRow(row)
-  return seq.Song {
+  return binseq.Song {
     db       = self,
     id       = row[1],
     posid    = row[2],

@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LMainView
-  -------------
+  binseq.LMainView
+  ----------------
 
   This view shows the following elements:
 
@@ -17,9 +17,9 @@
   [ loop length (per event)                           ] (use this as global)
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LMainView', name = 'Main'}
+local lib = {type = 'binseq.LMainView', name = 'Main'}
 lib.__index         = lib
-seq.LMainView       = lib
+binseq.LMainView       = lib
 -- Last column operation to function
 local col_button    = {}
 -- Map row operation to function
@@ -60,8 +60,8 @@ for i, k in ipairs(EXTRA_PARAMS) do
     ROW_INDEX[k] = i
   end
 end
-local posidToGrid = seq.Event.posidToGrid
-local gridToPosid = seq.Event.gridToPosid
+local posidToGrid = binseq.Event.posidToGrid
+local gridToPosid = binseq.Event.gridToPosid
 
 local BITS = {
   ctrl = {
@@ -174,7 +174,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LMainView(...)
+-- binseq.LMainView(...)
 function lib.new(lseq, song)
   local self = {
     lseq = lseq,
@@ -561,7 +561,6 @@ function private:loadList(key, e, list, row)
   end
   b[row] = 'multi'
   for i = 1,8 do
-  for i, _ in ipairs(list) do
     if list[i] then
       if i == idx then
         pad:button(row, i):setState('Green')

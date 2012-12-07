@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LPatternView
-  ---------------
+  binseq.LPatternView
+  -------------------
 
   This view shows the following elements:
 
@@ -9,17 +9,17 @@
   [ Green = playing, Red = playing + auto-save, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LPatternView', name = 'Pattern'}
+local lib = {type = 'binseq.LPatternView', name = 'Pattern'}
 lib.__index         = lib
-seq.LPatternView     = lib
+binseq.LPatternView     = lib
 -- Last column operation to function
 local col_button    = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
-local m             = seq.LMainView.common
-local gridToPosid   = seq.Event.gridToPosid 
-local posidToGrid   = seq.Event.posidToGrid
+local m             = binseq.LMainView.common
+local gridToPosid   = binseq.Event.gridToPosid 
+local posidToGrid   = binseq.Event.posidToGrid
 local POS           = m.POS
 
 --=============================================== CONSTANTS
@@ -41,7 +41,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LPatternView(...)
+-- binseq.LPatternView(...)
 function lib.new(lseq, song)
   local self = {
     lseq = lseq,

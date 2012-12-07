@@ -1,20 +1,20 @@
 --[[------------------------------------------------------
 
-  test seq.Event
+  test binseq.Event
   --------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.Event')
+local should = test.Suite('binseq.Event')
 
 function should.autoLoad()
-  local e = seq.Event
+  local e = binseq.Event
   assertType('table', e)
 end
 
 function should.setDefaultsOnCreate()
-  local e = seq.Event()
+  local e = binseq.Event()
   assertValueEqual({
     mute     = 1,
     loop     = 24,
@@ -27,7 +27,7 @@ function should.setDefaultsOnCreate()
 end
 
 function should.computeTriggerTime()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
   }
@@ -48,7 +48,7 @@ function should.computeTriggerTime()
 end
 
 function should.computeTriggerTimeWithStart()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
   }
@@ -65,7 +65,7 @@ function should.computeTriggerTimeWithStart()
 end
 
 function should.computeTriggerTimeWithGlobalLoop()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
   }
@@ -87,7 +87,7 @@ function should.reSchedule(t)
     self.e = e
   end
 
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     mute = 0,
   }
@@ -111,7 +111,7 @@ function should.reSchedule(t)
 end
 
 function should.playOnOff()
-  local e = seq.Event()
+  local e = binseq.Event()
   local l = 'NoteOn'
   for i=1,100 do
     local r = math.random(3)
@@ -138,7 +138,7 @@ function should.playOnOff()
 end
 
 function should.allowLengthSameAsLoop()
-  local e = seq.Event {
+  local e = binseq.Event {
     loop = 24,
     length = 24,
     position = 0,
@@ -169,7 +169,7 @@ function should.allowLengthSameAsLoop()
 end
 
 function should.allowLengthDifferentAsLoop()
-  local e = seq.Event {
+  local e = binseq.Event {
     loop = 24,
     length = 20,
     position = 0,
@@ -231,7 +231,7 @@ function should.allowLengthDifferentAsLoop()
 end
 
 function should.allowLengthLongerThenLoop()
-  local e = seq.Event {
+  local e = binseq.Event {
     loop = 24,
     length = 96,
     position = 0,
@@ -256,7 +256,7 @@ function should.allowLengthLongerThenLoop()
 end
 
 function should.allowNoteChangeInNoteOn()
-  local e = seq.Event {
+  local e = binseq.Event {
     loop = 24,
     length = 96,
     position = 0,
@@ -292,14 +292,14 @@ function should.allowNoteChangeInNoteOn()
   assertEqual(0x90, a)
 end
 
-local rowToPosid  = seq.Event.rowToPosid
+local rowToPosid  = binseq.Event.rowToPosid
 function should.computeRowToId()
   assertEqual(1,  rowToPosid(1, 0))
   assertEqual(11, rowToPosid(3, 1))
   assertEqual(17, rowToPosid(1, 2))
 end
 
-local posidToRow  = seq.Event.posidToRow
+local posidToRow  = binseq.Event.posidToRow
 function should.computeIdToRow()
   assertEqual(1,  posidToRow(1, 0))
   assertEqual(3,  posidToRow(11, 1))
@@ -308,7 +308,7 @@ function should.computeIdToRow()
   assertNil(posidToRow(17, 1))
 end
 
-local posidToGrid = seq.Event.posidToGrid
+local posidToGrid = binseq.Event.posidToGrid
 local function assertPairEqual(a, b, c, d)
   assertEqual(a, c)
   assertEqual(b, d)
@@ -323,7 +323,7 @@ function should.computeIdToGrid()
   assertNil(posidToGrid(25, 0, 3))
 end
 
-local gridToPosid = seq.Event.gridToPosid
+local gridToPosid = binseq.Event.gridToPosid
 function should.computeGridToId()
   assertEqual(1,  gridToPosid(1, 1, 0))
   assertEqual(3,  gridToPosid(1, 3, 0))
@@ -333,7 +333,7 @@ function should.computeGridToId()
 end
 
 function should.cycleThroughNotes()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
     notes = {10,12,17,13, _len = 4},
@@ -375,7 +375,7 @@ function should.cycleThroughNotes()
 end
 
 function should.cycleThroughVelocities()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
     velocities = {10,12,17,13, _len = 4},
@@ -417,7 +417,7 @@ function should.cycleThroughVelocities()
 end
 
 function should.cycleThroughLengths()
-  local e = seq.Event {
+  local e = binseq.Event {
     position = 48,
     loop = 96,
     lengths = {10,12,17,13, _len = 4},

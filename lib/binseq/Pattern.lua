@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.Pattern
-  -------------
+  binseq.Pattern
+  --------------
 
   A Pattern contains:
     * list of events
@@ -13,9 +13,9 @@
 
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.Pattern'}
+local lib = {type = 'binseq.Pattern'}
 lib.__index      = lib
-seq.Pattern    = lib
+binseq.Pattern    = lib
 local private    = {}
 
 --=============================================== PUBLIC
@@ -25,7 +25,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.Pattern(...)
+-- binseq.Pattern(...)
 function lib.new(def)
   local self = {
     -- Find event by event posid

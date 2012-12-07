@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.Song
-  -------------
+  binseq.Song
+  -----------
 
   A song contains
     * 64 patterns
@@ -14,9 +14,9 @@
     * disablePattern(posid): turn pattern Off
     
 --]]------------------------------------------------------
-local lib = {type = 'seq.Song'}
+local lib = {type = 'binseq.Song'}
 lib.__index      = lib
-seq.Song    = lib
+binseq.Song    = lib
 local private    = {}
 
 --=============================================== PUBLIC
@@ -26,11 +26,11 @@ setmetatable(lib, {
   end
 })
 
--- seq.Song(...)
+-- binseq.Song(...)
 function lib.new(def_or_db_path, song_id, name)
   if song_id then
     local db_path = def_or_db_path
-    local db = seq.PresetDb(db_path)
+    local db = binseq.PresetDb(db_path)
     return db:getOrCreateSong(song_id, name)
   end
   local def = def_or_db_path
@@ -131,9 +131,9 @@ function lib:deleteEvent(e)
 end
 
 --================================================== Used for testing
-local gridToPosid = seq.Event.gridToPosid
+local gridToPosid = binseq.Event.gridToPosid
 function lib.mock()
-  local db = seq.PresetDb ':memory:'
+  local db = binseq.PresetDb ':memory:'
   local song = db:getOrCreateSong(1, 'hello')
   for row = 1,6 do
     for col = 1,8 do

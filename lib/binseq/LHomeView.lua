@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LHomeView
-  ---------------
+  binseq.LHomeView
+  ----------------
 
   This view shows the following elements:
 
@@ -9,17 +9,17 @@
   [ Green = playing, Red = playing + auto-save, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LHomeView', name = 'Home'}
+local lib = {type = 'binseq.LHomeView', name = 'Home'}
 lib.__index         = lib
-seq.LHomeView     = lib
+binseq.LHomeView     = lib
 -- Last column operation to function
 local col_button    = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
-local m             = seq.LMainView.common
-local gridToPosid   = seq.Event.gridToPosid 
-local posidToGrid   = seq.Event.posidToGrid
+local m             = binseq.LMainView.common
+local gridToPosid   = binseq.Event.gridToPosid 
+local posidToGrid   = binseq.Event.posidToGrid
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
@@ -40,7 +40,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LHomeView(...)
+-- binseq.LHomeView(...)
 function lib.new(lseq, song)
   local self = {
     lseq = lseq,

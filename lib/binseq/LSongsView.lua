@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LSongsView
-  --------------
+  binseq.LSongsView
+  -----------------
 
   This view shows the list of songs:
 
@@ -9,15 +9,15 @@
   [ Green = selected, Amber = exist ]
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LSongsView', name = 'Songs'}
+local lib = {type = 'binseq.LSongsView', name = 'Songs'}
 lib.__index        = lib
-seq.LSongsView     = lib
+binseq.LSongsView     = lib
 -- Map top buttons
 local top_button   = {}
 local private      = {}
-private.nameToBits = seq.LHomeView.common.nameToBits
-local gridToPosid  = seq.Event.gridToPosid 
-local posidToGrid  = seq.Event.posidToGrid
+private.nameToBits = binseq.LHomeView.common.nameToBits
+local gridToPosid  = binseq.Event.gridToPosid 
+local posidToGrid  = binseq.Event.posidToGrid
 
 --=============================================== CONSTANTS
 
@@ -32,7 +32,7 @@ local SONG_STATE = {
 --=============================================== PUBLIC
 setmetatable(lib, {__call = function(lib, ...) return lib.new(...) end})
 
--- seq.LSongsView(...)
+-- binseq.LSongsView(...)
 function lib.new(lseq)
   local self = {
     lseq = lseq,

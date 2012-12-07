@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.Sequencer
-  -------------
+  binseq.Sequencer
+  ----------------
 
   A Sequencer contains:
     * list of active patterns
@@ -19,9 +19,9 @@
     * move(t): must be called to move song position.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.Sequencer'}
+local lib = {type = 'binseq.Sequencer'}
 lib.__index      = lib
-seq.Sequencer    = lib
+binseq.Sequencer    = lib
 local private    = {}
 local CTRL_EVERY_MS = 5 -- 200 Hz
 
@@ -34,7 +34,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.Sequencer(...)
+-- binseq.Sequencer(...)
 function lib.new(def)
   local self = {
     t        = 0,

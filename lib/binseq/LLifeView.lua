@@ -1,22 +1,22 @@
 --[[------------------------------------------------------
 
-  seq.LLifeView
-  -------------
+  binseq.LLifeView
+  ----------------
 
   Conway's game of life.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LLifeView', name = 'Life'}
+local lib = {type = 'binseq.LLifeView', name = 'Life'}
 lib.__index        = lib
-seq.LLifeView      = lib
+binseq.LLifeView      = lib
 -- Map top buttons
 local top_button   = {}
 local col_button   = {}
 local private      = {}
-private.nameToBits = seq.LHomeView.common.nameToBits
-local gridToPosid  = seq.Event.gridToPosid 
-local posidToGrid  = seq.Event.posidToGrid
-local BIT_STATE    = seq.LHomeView.common.BIT_STATE
+private.nameToBits = binseq.LHomeView.common.nameToBits
+local gridToPosid  = binseq.Event.gridToPosid 
+local posidToGrid  = binseq.Event.posidToGrid
+local BIT_STATE    = binseq.LHomeView.common.BIT_STATE
 
 --=============================================== CONSTANTS
 
@@ -28,7 +28,7 @@ local LIFE_STATE = {
 --=============================================== PUBLIC
 setmetatable(lib, {__call = function(lib, ...) return lib.new(...) end})
 
--- seq.LLifeView(...)
+-- binseq.LLifeView(...)
 function lib.new(lseq)
   local self = {
     lseq = lseq,

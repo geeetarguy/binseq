@@ -1,4 +1,4 @@
 require 'lubyk'
-sequencer = seq.LSeq('LSeq')
+sequencer = binseq.LSeq('LSeq')
 
 run()

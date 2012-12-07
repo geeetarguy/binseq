@@ -1,15 +1,15 @@
 --[[------------------------------------------------------
 
-  seq.Launchpad
-  -------------
+  binseq.Launchpad
+  ----------------
 
   The Launchpad is a view for the Sequencer and is
   connected to novation Launchpad via midi.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.Launchpad'}
+local lib = {type = 'binseq.Launchpad'}
 lib.__index      = lib
-seq.Launchpad    = lib
+binseq.Launchpad    = lib
 local private    = {}
 
 --=============================================== PUBLIC
@@ -19,7 +19,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.Launchpad(...)
+-- binseq.Launchpad(...)
 function lib.new(port_name)
   local self = {
     buttons = {},
@@ -40,6 +40,7 @@ function lib:connect(port_name)
     self.lin = midi.In(port_name)
     self.out = midi.Out(port_name)
   end)
+  if not ok then print(msg) end
 
   if not ok then return false end
 
@@ -85,7 +86,7 @@ function lib:button(row, col)
   local btn_id = row * 16 + col
   local b = self.buttons[btn_id]
   if not b then
-    b = seq.LButton(self, row, col)
+    b = binseq.LButton(self, row, col)
     self.buttons[btn_id] = b
   end
   return b

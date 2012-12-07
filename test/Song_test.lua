@@ -1,18 +1,18 @@
 --[[------------------------------------------------------
 
-  test seq.Song
+  test binseq.Song
   -------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.Song')
-local mock = seq.Song.mock
+local should = test.Suite('binseq.Song')
+local mock = binseq.Song.mock
 
-local gridToPosid = seq.Event.gridToPosid
+local gridToPosid = binseq.Event.gridToPosid
 
 function should.autoLoad()
-  local e = seq.Song
+  local e = binseq.Song
   assertType('table', e)
 end
 
@@ -21,8 +21,8 @@ function should.loadSequencers()
   local song = db:getSong(1)
   local s1 = song.sequencers_list[1]
   local s2 = song.sequencers_list[2]
-  assertEqual('seq.Sequencer', s1.type)
-  assertEqual('seq.Sequencer', s2.type)
+  assertEqual('binseq.Sequencer', s1.type)
+  assertEqual('binseq.Sequencer', s2.type)
 end
 
 function should.respondToHavePattern()

@@ -1,7 +1,7 @@
 --[[------------------------------------------------------
 
-  seq.LBatchView
-  -------------
+  binseq.LBatchView
+  -----------------
 
   This view shows the following elements:
 
@@ -19,15 +19,15 @@
   Click on the current edit param moves back to Main view.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LBatchView', name = 'Batch'}
+local lib = {type = 'binseq.LBatchView', name = 'Batch'}
 lib.__index         = lib
-seq.LBatchView      = lib
+binseq.LBatchView      = lib
 -- Last column operation to function
 local col_press     = {}
 -- Map top buttons
 local top_button    = {}
 local private       = {}
-local m             = seq.LMainView.common
+local m             = binseq.LMainView.common
 
 private.loadParam = m.loadParam
 private.setParam  = m.setParam
@@ -44,8 +44,8 @@ for i, key in ipairs(PARAMS) do
     KEY_TO_ROW[key] = i
   end
 end
-local rowToPosid = seq.Event.rowToPosid
-local posidToRow = seq.Event.posidToRow
+local rowToPosid = binseq.Event.rowToPosid
+local posidToRow = binseq.Event.posidToRow
 
 
 local NOTE_ON_STATE = {
@@ -84,7 +84,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LBatchView(...)
+-- binseq.LBatchView(...)
 function lib.new(lseq, song)
   local self = {
     lseq = lseq,

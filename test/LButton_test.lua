@@ -1,16 +1,16 @@
 --[[------------------------------------------------------
 
-  test seq.LaunchpadButton
+  test binseq.LaunchpadButton
   ------------------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LButton')
+local should = test.Suite('binseq.LButton')
 local withUser = should:testWithUser()
 
 function should.autoLoad()
-  local l = seq.LButton
+  local l = binseq.LButton
   assertType('table', l)
 end
 

@@ -1,22 +1,22 @@
 --[[------------------------------------------------------
 
-  test seq.LMainView
+  test binseq.LMainView
   ------------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LMainView')
+local should = test.Suite('binseq.LMainView')
 local withUser = should:testWithUser()
 
 function should.autoLoad()
-  local e = seq.LMainView
+  local e = binseq.LMainView
   assertType('table', e)
 end
 
 function withUser.should.editEvent(t)
-  local s = seq.Sequencer()
-  local ls = seq.LSeq(s)
+  local s = binseq.Sequencer()
+  local ls = binseq.LSeq(s)
   assertPass(function()
     ls:loadView('Main')
   end)

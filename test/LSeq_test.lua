@@ -1,21 +1,21 @@
 --[[------------------------------------------------------
 
-  test seq.LSeq
+  test binseq.LSeq
   -------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('seq.LSeq')
+local should = test.Suite('binseq.LSeq')
 
 function should.autoLoad()
-  local e = seq.LSeq
+  local e = binseq.LSeq
   assertType('table', e)
 end
 
 function should.createLSeq()
-  local ls = seq.LSeq(':memory:')
-  assertEqual('seq.LSeq', ls.type)
+  local ls = binseq.LSeq(':memory:')
+  assertEqual('binseq.LSeq', ls.type)
 end
 
 test.all()

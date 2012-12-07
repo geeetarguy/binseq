@@ -1,14 +1,14 @@
 --[[------------------------------------------------------
 
-  seq.LButton
-  -------------------
+  binseq.LButton
+  --------------
 
   One button on the Launchpad.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LButton'}
+local lib = {type = 'binseq.LButton'}
 lib.__index         = lib
-seq.LButton = lib
+binseq.LButton = lib
 local private       = {}
 
 -- Velocity values for colors (using double buffering).
@@ -42,7 +42,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LButton(...)
+-- binseq.LButton(...)
 function lib.new(pad, row, col)
   local self = {
     pad = pad,

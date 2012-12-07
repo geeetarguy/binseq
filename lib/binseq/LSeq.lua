@@ -1,19 +1,19 @@
 --[[------------------------------------------------------
 
-  seq.LSeq
-  --------
+  binseq.LSeq
+  -----------
 
   Controller between the Launchpad and the sequencer.
 
 --]]------------------------------------------------------
-local lib = {type = 'seq.LSeq'}
+local lib = {type = 'binseq.LSeq'}
 lib.__index         = lib
-seq.LSeq            = lib
+binseq.LSeq            = lib
 local private       = {}
 local top_button    = {}
 local col_press     = {}
 local col_release   = {}
-local m             = seq.LMainView.common
+local m             = binseq.LMainView.common
 local PARAMS        = m.PARAMS
 local POS           = m.POS
 
@@ -27,7 +27,7 @@ setmetatable(lib, {
   end
 })
 
--- seq.LSeq(...)
+-- binseq.LSeq(...)
 function lib.new(db_path, out_name, in_name, pad_name)
   assert(db_path, 'Database path needed.')
   local self = {
@@ -41,7 +41,7 @@ function lib.new(db_path, out_name, in_name, pad_name)
     seq_bits = {},
     selected_id  = 1,
     selected_seq = nil,
-    db = seq.PresetDb(db_path),
+    db = binseq.PresetDb(db_path),
   }
 
   setmetatable(self, lib)
@@ -72,7 +72,7 @@ function lib:loadSong(posid)
   if not seq then
     -- Create 1
     seq = self.song:getOrCreateSequencer(1)
-    seq.playback = self.playback
+    binseq.playback = self.playback
   end
 
   local pattern
@@ -120,14 +120,14 @@ function lib:loadView(name, key, opt)
 
   local view = song and song.views[name]
   if not view then
-    local t = seq['L'..name..'View']
+    local t = binseq['L'..name..'View']
     if t then
       view = t(self, song)
       if song then
         song.views[name] = view
       end
     else
-      error('Could not find seq.L'..name..'View view')
+      error('Could not find binseq.L'..name..'View view')
     end
   end
 
@@ -249,7 +249,7 @@ end
 function lib:connect()
   if not self.pad then
     -- Try to connect to Launchpad
-    self.pad = seq.Launchpad(self.pad_name)
+    self.pad = binseq.Launchpad(self.pad_name)
   end
 
   --=============================================== Setup midi Out
