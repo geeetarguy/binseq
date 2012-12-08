@@ -197,7 +197,9 @@ function lib:trigger(e, skip_schedule)
   if e.mute == 0 or e.off_t then
     -- Not muted or NoteOff
     local f = self.playback
-    if f then f(self, e) end
+    if f then 
+      skip_schedule = f(self, e) or skip_schedule
+    end
   end
   -- Keep last trigger time to reschedule event on edit/create.
   self.t = e.t

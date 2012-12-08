@@ -55,17 +55,18 @@ end
 
 -- aseq can be nil
 function lib:setSequencer(aseq)
+  if self.seq == aseq then return end
   self.seq = aseq
   -- Schedule pattern events
   for _, e in pairs(self.events) do
     e:setSequencer(aseq)
   end
-  if not aseq then
-    -- write in db
+
+  if aseq then
+    self:set {sequencer_id = aseq.id}
+  else
     self.sequencer_id = nil
     self:save()
-  else
-    self:set {sequencer_id = aseq.id}
   end
 end
 
@@ -133,7 +134,13 @@ function lib:chordIndex(t)
 end
 
 function lib:chord(t)
-  return self.chords[self:chordIndex(t)]
+  local c = self.chords[self:chordIndex(t)]
+  if c.mute == 1 then
+    -- Muted chord is not played
+    return nil
+  else
+    return c
+  end
 end
 
 function lib:save()

@@ -39,7 +39,7 @@ function should.addEventToChordChangers()
     velocity = 0,
   }
   assertEqual(pat, e.pat)
-  assertTrue(e.chord_changer)
+  assertEqual('chord_changer', e.etype)
   assertEqual(e, pat.chord_changers[1])
 end
 
@@ -69,7 +69,7 @@ function should.addEventToChords()
     notes = {60, 63, 67},
     loop  = 0,
   }
-  assertTrue(e.is_chord)
+  assertEqual('chord', e.etype)
   assertEqual(1, pat.chords._len)
   assertEqual(e, pat.chords[1])
 end
@@ -112,18 +112,21 @@ function chordPattern()
     notes = {60, 63, 67, _len = 3},
     -- treat as chord
     loop  = 0,
+    mute  = 0,
   }
 
   -- F-  (60, 65, 68)
   e2:set {
     notes = {60, 65, 68, _len = 3},
     loop  = 0,
+    mute  = 0,
   }
 
   -- G7  (59, 62, 65)
   e3:set {
     notes = {59, 62, 65, _len = 3},
     loop  = 0,
+    mute  = 0,
   }
 
   -- Rhythm
@@ -133,6 +136,7 @@ function chordPattern()
     loop = 96,
     position = 0,
     note  = 0,
+    mute  = 0,
   }
 
   -- Every bar on 3
@@ -140,6 +144,7 @@ function chordPattern()
     loop = 96,
     position = 48,
     note  = 0,
+    mute  = 0,
   }
 
   -- Every bar on 3+ 
@@ -147,6 +152,7 @@ function chordPattern()
     loop = 96,
     position = 60,
     note  = 0,
+    mute  = 0,
   }
 
   -- Every bar on 4 
@@ -154,6 +160,7 @@ function chordPattern()
     loop = 96,
     position = 72,
     note  = 0,
+    mute  = 0,
   }
 
   -- Change chord every 2 bar
@@ -163,6 +170,7 @@ function chordPattern()
     -- Mark as chord changer
     velocity = 0,
     loop = 192,
+    mute  = 0,
   }
 
   -- Change chord at bar 3 every 4
@@ -171,6 +179,7 @@ function chordPattern()
     velocity = 0,
     loop = 384,
     position = 288,
+    mute  = 0,
   }
 
   local partition = {
@@ -276,7 +285,7 @@ function should.playChord()
   for _, e in ipairs(partition.events.r) do
     -- t, Gs
     e:nextTrigger(0, 0)
-    assertTrue(e.chord_player)
+    assertEqual('chord_player', e.etype)
   end
 
   for t=0,500 do

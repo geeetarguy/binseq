@@ -133,6 +133,43 @@ function lib:setEventState(e)
   private.showButtonState(self, pat, nil, nil, e)
 end
 
+-- Called on next pattern trigger.
+function lib:enablePattern(pat, row, col)
+  local song = pat.song
+  local row, col
+  if not row then
+    row, col = posidToGrid(pat.posid, 0)
+  end
+
+  local seq
+  for i=col,1,-1 do
+    seq = song.sequencers[i]
+    if seq then
+      break
+    end
+  end
+  if seq then
+    pat:setSequencer(seq)
+  end
+
+  if self.lseq.view == self then
+    private.showButtonState(self, pat, row, col)
+  end
+end
+
+-- Called on next pattern trigger.
+function lib:disablePattern(pat, row, col)
+  local row, col = row, col
+  if not row then
+    row, col = posidToGrid(pat.posid, 0)
+  end
+  pat:setSequencer(nil)
+
+  if self.lseq.view == self then
+    private.showButtonState(self, pat, row, col)
+  end
+end
+
 --=============================================== TOP BUTTONS
 -- Copy/Del pattern
 top_button[POS.COPY] = function(self, row, col)
@@ -197,12 +234,11 @@ function private:pressGrid(row, col)
     local pat = song.patterns[posid]
     if pat then
       if pat.seq then
-        pat:setSequencer(nil)
+        self:disablePattern(pat, row, col)
       else
         -- Find sequencer for this pattern
-        private.assignSequencer(self, song, pat, col)
+        self:enablePattern(pat, row, col)
       end
-      private.showButtonState(self, pat, row, col)
     end
 
   else
@@ -210,7 +246,7 @@ function private:pressGrid(row, col)
     local pat = song.patterns[posid]
     if not pat then
       pat = song:getOrCreatePattern(posid)
-      private.assignSequencer(self, song, pat, col)
+      self:enablePattern(pat, row, col)
     end
     local last_pat = song.edit_pattern
     song.edit_pattern = pat
@@ -230,7 +266,8 @@ function private:sequencerPress(row, col)
     aseq:delete()
     song.sequencers[col] = nil
     for posid, pat in pairs(aseq.patterns) do
-      private.assignSequencer(self, song, pat)
+      -- Change sequencer
+      self:enablePattern(pat)
     end
 
     self.pad:button(0, col):setState('Off')
@@ -243,7 +280,7 @@ function private:sequencerPress(row, col)
 
     for _, pat in pairs(song.patterns) do
       if pat.seq then
-        private.assignSequencer(self, song, pat)
+        self:enablePattern(pat)
       end
     end
     self.pad:button(0, col):setState('Green')
@@ -270,24 +307,6 @@ function private:showButtonState(pat, row, col, e)
   self.pad:button(row, col):setState(PART_STATE[b])
 end
 
-
-function private:assignSequencer(song, pat, col)
-  if not col then
-    local r, c = posidToGrid(pat.posid, 0)
-    col = c
-  end
-
-  local seq
-  for i=col,1,-1 do
-    seq = song.sequencers[i]
-    if seq then
-      break
-    end
-  end
-  if seq then
-    pat:setSequencer(seq)
-  end
-end
 
 function private:showGrid()
   local page  = self.page

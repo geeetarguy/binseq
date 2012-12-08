@@ -148,7 +148,7 @@ function lib:setEventState(e, off_t)
   local btn, b
   if e == self.list_e then
     -- Event edited in value list
-    local idx = e.is_chord and 1 or e.index[key] or 1
+    local idx = e.etype == 'chord' and 1 or e.index[key] or 1
     btn = self.pad:button(idx, 1)
     b   = self.bits[key][idx][1] + 1
   elseif self.list_e then
@@ -159,7 +159,7 @@ function lib:setEventState(e, off_t)
     local row = self.row_by_id[posid]
     -- Bit value for this element
     if not row then return end
-    local idx = e.is_chord and 1 or e.index[key]
+    local idx = e.etype == 'chord' and 1 or e.index[key]
     if idx then
       b = 1
       btn = self.pad:button(row, idx)

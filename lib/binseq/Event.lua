@@ -38,6 +38,7 @@ function lib.new(def)
     velocity = 80,
     -- Stores the currently playing value index (index.length, ...)
     index    = {},
+    etype    = 'note',
   }
   setmetatable(self, lib)
   if def then
@@ -48,6 +49,8 @@ end
 
 -- The event becomes active inside a Sequencer.
 function lib:setSequencer(aseq)
+  if self.seq == aseq then return end
+
   if self.seq then
     -- Remove from previous sequencer
     if self.off_t then
@@ -56,11 +59,22 @@ function lib:setSequencer(aseq)
     end
     self.seq:removeEvent(self)
   end
+
   self.seq = aseq
-  if aseq 
-    and self.mute ~= 1 
-    and not self.is_chord then
+  if aseq and self:scheduledType() then
     aseq:reSchedule(self)
+  end
+end
+
+function lib:scheduledType()
+  local et = self.etype
+  --                   This is an error => mute event.
+  if self.mute == 1 or self.position >= self.loop or
+     et == 'chord' or et == 'chord_changer' then
+    return false
+  else
+    -- Schedule event
+    return true
   end
 end
 
@@ -198,6 +212,12 @@ local next = next
 local WEAK = {__mode="k"}
 function lib:trigger(chan)
   local chan = chan or 1
+
+  if self.pat_changer then
+
+    return nil
+  end
+
   if self.off_t then
     --=============================================== NoteOff
     local base = chan - 1 + 0x80
@@ -246,8 +266,9 @@ function lib:trigger(chan)
       --=============================================== NoteOn
       local base = chan - 1 + 0x90
       local velo = self.velocity
+      local etype = self.etype
 
-      if self.chord_player then
+      if etype == 'chord_player' then
         -- Chord
         local chord = self.pat:chord(self.t)
         if not chord then
@@ -264,8 +285,11 @@ function lib:trigger(chan)
         -- Make sure the NoteOff message uses the same note value
         self.off_n = notes
         return notes
+      elseif etype == 'pat_changer' then
+        -- no midi
+        return nil
       else
-        -- Single note
+        -- Note
         -- Make sure the NoteOff message uses the same note value
         self.off_n = self.note
         return base, self.note, self.velocity
@@ -332,17 +356,17 @@ function private:computeType()
 
   if self.loop == 0 then
     --=============================================== Chord
-    if not self.is_chord then
+    if self.etype ~= 'chord' then
       -- add in pattern chords
       local list = pat.chords
       list._len = list._len + 1
       table.insert(list, self)
-      self.is_chord = true
+      self.etype = 'chord'
     end
     -- Do not schedule
     return false
   else
-    if self.is_chord then
+    if self.etype == 'chord' then
       -- remove from pattern chords
       local list = pat.chords
       for i, e in ipairs(list) do
@@ -352,31 +376,34 @@ function private:computeType()
           break
         end
       end
-      self.is_chord = false
     end
 
-    local remove_from_changers = self.chord_changer
+    local remove_from_changers = self.etype == 'chord_changer'
 
-    if self.note == 0 and not self.ctrl then
+    if self.ctrl then
+      self.etype = 'ctrl'
+    elseif self.note == 0 then
       if self.velocity == 0 then
         --=============================================== Chord changer
-        if not self.chord_changer then
+        if self.etype ~= 'chord_changer' then
           -- add to pattern chord changers
           table.insert(pat.chord_changers, self)
-          self.chord_changer = true
+          self.etype = 'chord_changer'
         end
+        -- Not scheduled
         return false
       else
         --=============================================== Chord trigger
         -- chord player
-        self.chord_player = true
+        self.etype = 'chord_player'
       end
+    elseif self.velocity == 0 then
+      self.etype = 'pat_changer'
     else
-      self.chord_player  = false
+      self.etype = 'note'
     end
 
     if remove_from_changers then
-      self.chord_changer = false
       local list = pat.chord_changers
       for i, e in ipairs(list) do
         if e == self then
@@ -386,12 +413,6 @@ function private:computeType()
       end
     end
 
-    --                   This is an error => mute event.
-    if self.mute == 1 or self.position >= self.loop then
-      return false
-    else
-      -- Schedule event
-      return true
-    end
+    return self:scheduledType()
   end
 end

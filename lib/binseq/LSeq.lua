@@ -72,7 +72,7 @@ function lib:loadSong(posid)
   if not seq then
     -- Create 1
     seq = self.song:getOrCreateSequencer(1)
-    binseq.playback = self.playback
+    aseq.playback = self.playback
   end
 
   local pattern
@@ -266,6 +266,7 @@ function lib:connect()
     if ok then
       local midiout, send = self.midiout, self.midiout.send
       function self.playback(aseq, e, b, c)
+        local skip_schedule = false
         -- Playback function
         -- Important to trigger so that NoteOff is registered.
         if c then
@@ -273,11 +274,24 @@ function lib:connect()
           send(midiout, e, b, c)
         else
           send(midiout, e:trigger(aseq.channel))
+          if e.etype == 'pat_changer' then
+            local pat = e.pat.song.patterns[e.note]
+            local v = self.song.views.Pattern
+            if v then
+              if pat then
+                v:enablePattern(pat)
+              end
+              -- Disable self
+              v:disablePattern(e.pat)
+              skip_schedule = true
+            end
+          end
           local view = self.view
           local f = view.setEventState
           if f then
             f(view, e)
           end
+          return skip_schedule
         end
       end
     end
