@@ -23,7 +23,7 @@ local lib = {type = 'binseq.Sequencer'}
 lib.__index      = lib
 binseq.Sequencer    = lib
 local private    = {}
-local CTRL_EVERY_MS = 5 -- 200 Hz
+local MAX_CTRL_EVERY_MS = 2 -- 500 Hz
 
 --=============================================== CONSTANTS
 
@@ -184,12 +184,7 @@ function lib:step(t)
     e = list.next
   end
 
-  local last_ct = self.last_ct or -1000
-  local ct = now()
-  if ct >= last_ct + CTRL_EVERY_MS then
-    self.last_ct = ct
-    private.controlRamps(self, t)
-  end
+  private.controlRamps(self, t)
 end
 
 function lib:trigger(e, skip_schedule)
@@ -277,37 +272,46 @@ function private.insertInList(list, e)
 end
 
 function private:controlRamps(t)
+  local ct = now()
   local playback = self.playback
   local base = self.channel + 0xB0 - 1
   for ctrl, list in pairs(self.ctrls) do
     local last = list._last
-    local v = -1
-    for e, _ in pairs(list) do
-      if e ~= '_last' and e.off_t then
-        -- For each control changers for this ctrl value
-        local min, max = e.velocity, e.note
-        if min > v or max > v then
-          -- Compute ramp
-          local end_t, len = e.off_t, e.length
-          local slope = (max - min) / len
-          local e_v = min + slope * (t - end_t + len)
-          if e_v > v then
-            v = e_v
-            if v == 127 then
-              break
+    local last_ct = list._last_ct or -1000
+    if ct < last_ct + MAX_CTRL_EVERY_MS then
+      -- ignore for now
+    else
+      local v = -1
+      for e, _ in pairs(list) do
+        if e ~= '_last' and e ~= '_last_ct' and e.off_t then
+          -- For each control changers for this ctrl value
+          local min, max = e.velocity, e.note
+          if min > v or max > v then
+            -- Compute ramp
+            local end_t, len = e.off_t, e.length
+            local slope = (max - min) / len
+            local e_v = min + slope * (t - end_t + len)
+            if e_v > v then
+              v = e_v
+              if v == 127 then
+                break
+              end
             end
           end
         end
       end
-    end
-    if v == -1 then
-      -- empty
-      playback(self, base, ctrl, 0)
-      self.ctrls[ctrl] = nil
-    else
-      v = math.floor(v + 0.5)
-      if v ~= last then
-        playback(self, base, ctrl, v)
+
+      if v == -1 then
+        -- empty
+        playback(self, base, ctrl, 0)
+        self.ctrls[ctrl] = nil
+      else
+        v = math.floor(v + 0.5)
+        if v ~= last then
+          list._last = v
+          list._last_ct = ct
+          playback(self, base, ctrl, v)
+        end
       end
     end
   end

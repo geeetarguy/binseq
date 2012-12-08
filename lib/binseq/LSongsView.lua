@@ -179,22 +179,20 @@ function private:pressGrid(row, col)
 end
 
 function private:showButtonState(song, row, col, e)
-  if self.lseq.song and song.posid == self.lseq.song.posid then
-    self.pad:button(row, col):setState(SONG_STATE[5])
-    return
-  end
-
   if not row then
     row, col = posidToGrid(song.posid, self.page)
     if not row then
       return
     end
   end
-  local b = private.nameToBits(self, song.name, true)
-  if e and e.off_t then
-    -- + NoteOn
-    b = b + 2
+
+  local b
+  if self.lseq.song and song.posid == self.lseq.song.posid then
+    b = 4
+  else
+    b = private.nameToBits(self, song.name, true)
   end
+
   self.pad:button(row, col):setState(SONG_STATE[b + 1])
 end
 

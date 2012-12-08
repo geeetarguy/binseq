@@ -130,6 +130,12 @@ function lib:deleteEvent(e)
   end
 end
 
+function lib:allOff()
+  for _, s in pairs(self.sequencers) do
+    s:allOff()
+  end
+end
+
 --================================================== Used for testing
 local gridToPosid = binseq.Event.gridToPosid
 function lib.mock()

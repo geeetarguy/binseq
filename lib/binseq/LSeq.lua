@@ -51,6 +51,9 @@ function lib.new(db_path, out_name, in_name, pad_name)
 end
 
 function lib:loadSong(posid)
+  if self.song then
+    self:stop()
+  end
   local song = self.db:getOrCreateSong(posid)
   self.song = song
   if song.name == '' then
@@ -72,7 +75,7 @@ function lib:loadSong(posid)
   if not seq then
     -- Create 1
     seq = self.song:getOrCreateSequencer(1)
-    aseq.playback = self.playback
+    seq.playback = self.playback
   end
 
   local pattern
@@ -169,14 +172,7 @@ end
 
 function lib:stop()
   local song = self.song
-  if not song then
-    return
-  end
-
-  for _, aseq in pairs(song.sequencers) do
-    -- Loop through all sequencers
-    aseq:allOff()
-  end
+  if song then song:allOff() end
 end
 
 function lib:release(row, col)
