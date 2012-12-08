@@ -29,21 +29,18 @@ local top_button    = {}
 local private       = {}
 local m             = binseq.LMainView.common
 
-private.loadParam = m.loadParam
-private.setParam  = m.setParam
+private.loadParam  = m.loadParam
+private.setParam   = m.setParam
+private.pressMulti = m.pressMulti
+private.editMulti  = m.editMulti
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
 local PARAMS      = m.PARAMS
 local BIT_STATE   = m.BIT_STATE
 local PLURALIZE   = m.PLURALIZE
+local KEY_TO_ROW  = m.KEY_TO_ROW
 
-local KEY_TO_ROW  = {}
-for i, key in ipairs(PARAMS) do
-  if key ~= '' then
-    KEY_TO_ROW[key] = i
-  end
-end
 local rowToPosid = binseq.Event.rowToPosid
 local posidToRow = binseq.Event.posidToRow
 
@@ -142,27 +139,27 @@ function lib:display(key)
 end
 
 -- mandatory function for view
-function lib:setEventState(e)
-  local pat = e.pattern
+function lib:setEventState(e, off_t)
+  local pat = e.pat
+  if pat ~= self.song.edit_pattern then return end
+
   local key = self.key
-  if pat ~= self.song.edit_pattern then
-    return
-  end
 
   local btn, b
   if e == self.list_e then
     -- Event edited in value list
-    local idx = e.index[key]
+    local idx = e.is_chord and 1 or e.index[key] or 1
     btn = self.pad:button(idx, 1)
     b   = self.bits[key][idx][1] + 1
+  elseif self.list_e then
+    -- not visible
+    return
   else
     local posid = e.posid
     local row = self.row_by_id[posid]
     -- Bit value for this element
-    if not row then
-      return
-    end
-    local idx = e.index[key]
+    if not row then return end
+    local idx = e.is_chord and 1 or e.index[key]
     if idx then
       b = 1
       btn = self.pad:button(row, idx)
@@ -175,12 +172,16 @@ function lib:setEventState(e)
   if e.mute == 1 then
     b = b + 3
   end
-  if e.off_t then
+  if off_t or e.off_t then
     -- Note is on
     btn:setState(NOTE_ON_STATE[b])
   else
     -- Note is off
     btn:setState(NOTE_OFF_STATE[b])
+  end
+
+  if type(e.off_n) == 'table' then
+    self:setEventState(e.off_n.chord, e.off_t)
   end
 end
 
@@ -196,35 +197,6 @@ function lib:editEvent(e)
   end
 end
 lib.eventChanged = lib.editEvent
-
--- Edit list of events/lengths/velocities stored in event.
-function lib:editMulti(e)
-  local list = e[PLURALIZE[self.key]]
-  local pad = self.pad
-  if not list then
-    list = {e[self.key], _len = 1}
-    e[PLURALIZE[self.key]] = list
-  end
-  self.list   = list
-  self.list_e = e
-  -- Clear
-  pad:prepare()
-  pad:clear()
-
-  -- Display events
-  local page = 0
-  local key = self.key
-  local row_by_id = {}
-  self.row_by_id = row_by_id
-
-  for row=1,list._len do
-    local value = list[row]
-    local posid = rowToPosid(row, page)
-    private.loadParam(self, key, e, value, BIT_STATE, row)
-  end
-  pad:button(KEY_TO_ROW[key], 9):setState('Green')
-  pad:commit()
-end
 
 function lib:press(row, col)
   if row == 0 then
@@ -246,7 +218,7 @@ for i, key in ipairs(PARAMS) do
   if key ~= '' then
     col_press[i] = function(self, row, col)
       if key == self.key and self.list_e then
-        private.toggleMulti(self, 0, 4)
+        private.toggleMulti(self, 0, 5)
       else
         self.lseq:loadView('Batch', key)
       end
@@ -266,31 +238,19 @@ function private:toggleMulti(row, col)
     self.last_key = last_key
   elseif self.edit_multi then
     self.edit_multi = nil
-    self.pad:button(0, 4):setState('Off')
+    self.pad:button(0, col):setState('Off')
   else
     self.edit_multi = true
-    self.pad:button(0, 4):setState('Amber')
+    self.pad:button(0, col):setState('Amber')
   end
 end
-top_button[4] = private.toggleMulti
+top_button[5] = private.toggleMulti
 
 function private:pressGrid(row, col)
   local key  = self.key
   local song = self.song
   if self.list_e then
-    local e  = self.list_e
-    local list = self.list
-    local len = list._len
-    -- Editing multiple notes/velocities/lengths from a single event
-    if row > len then
-      -- create empty value(s)
-      for i=len+1,row do
-        table.insert(list, 0)
-        list._len = i
-        private.loadParam(self, key, e, 0, BIT_STATE, i)
-      end
-    end
-    private.setParam(self, key, row, col, e, BIT_STATE)
+    private.pressMulti(self, row, col, key)
   else
     local e = self.events[row]
     if not e then
@@ -313,10 +273,9 @@ function private:pressGrid(row, col)
     end
 
     if self.edit_multi or e[PLURALIZE[self.key]] then
-      -- TODO: Use also on MainView...
-      self:editMulti(e)
       self.edit_multi = nil
-      self.pad:button(0, 4):setState('Green')
+      private.editMulti(self, e)
+      self.pad:button(0, 5):setState('Green')
     else
       if col == 1 then
         private.setParam(self, self.key, row, col, e, e.off_t and NOTE_ON_STATE or NOTE_OFF_STATE)
@@ -327,4 +286,3 @@ function private:pressGrid(row, col)
     self.last_e = e
   end
 end
-

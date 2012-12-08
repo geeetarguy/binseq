@@ -162,7 +162,6 @@ function private:pressGrid(row, col)
   local pat = self.patterns[posid]
                      
 
-
   if false and self.copy_on then
     --=============================================== FIXME !!!
     if song.edit_pattern then
@@ -208,8 +207,11 @@ function private:pressGrid(row, col)
 
   else
     -- choose pattern to edit
-    print(posid, 'POSID')
-    local pat = song:getOrCreatePattern(posid)
+    local pat = song.patterns[posid]
+    if not pat then
+      pat = song:getOrCreatePattern(posid)
+      private.assignSequencer(self, song, pat, col)
+    end
     local last_pat = song.edit_pattern
     song.edit_pattern = pat
 

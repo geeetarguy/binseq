@@ -21,4 +21,7 @@ Global parameter in 'pattern' ? How do we shuffle ?
 Bugs
 ====
 
+velo => 0, velo => 64 does not come back as chord player.
+
+notify host on changes => mark proj as dirty (undo ?)
 

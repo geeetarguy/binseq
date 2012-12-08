@@ -260,6 +260,7 @@ function lib:trigger(chan)
         for _, n in ipairs(chord_notes) do
           table.insert(notes, {base, n, velo})
         end
+        notes.chord = chord
         -- Make sure the NoteOff message uses the same note value
         self.off_n = notes
         return notes

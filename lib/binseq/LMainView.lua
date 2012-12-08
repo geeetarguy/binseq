@@ -20,8 +20,6 @@
 local lib = {type = 'binseq.LMainView', name = 'Main'}
 lib.__index         = lib
 binseq.LMainView       = lib
--- Last column operation to function
-local col_button    = {}
 -- Map row operation to function
 local grid_button   = {}
 -- Buttons used to select events.
@@ -60,8 +58,17 @@ for i, k in ipairs(EXTRA_PARAMS) do
     ROW_INDEX[k] = i
   end
 end
+local rowToPosid = binseq.Event.rowToPosid
+local posidToRow = binseq.Event.posidToRow
 local posidToGrid = binseq.Event.posidToGrid
 local gridToPosid = binseq.Event.gridToPosid
+
+local KEY_TO_ROW  = {}
+for i, key in ipairs(PARAMS) do
+  if key ~= '' then
+    KEY_TO_ROW[key] = i
+  end
+end
 
 local BITS = {
   ctrl = {
@@ -108,34 +115,35 @@ local BITS = {
   },
   length = {
     -- Adding 1000 = triple mode: 0, 1, 2
-    1288,  -- 3 whole notes   OOO, OOOOOO
-    1096,  -- 1 whole note    O, OO
-    48,    -- half note       o
-    24,    -- quarter note    .
-    12,    -- eighth note     x
-    6,     -- 16th note       xx
-    3,     -- 32th note       xxx
-    1001,   -- 1 tuplet, 2 tuplet
-  },
-  position = { -- Adding 1000 = triple mode: 0, 1, 2
-    1288,  -- 3 whole notes   OOO, OOOOOO
-    1096,  -- 1 whole note    O, OO
+    1864,  -- 9, 18 whole notes
+    1288,  -- 3, 6  whole notes
+    1096,  -- 1, 2  whole notes
     48,  -- half note       o
     24,  -- quarter note    .
-    12,  -- eighth note     x
-    6,   -- 16th note       xx
-    3,   -- 32th note       xxx
+    12,   -- eigth note
+    1003,   -- 32th note, 1 16th
+    1001,   -- 1 tuplet, 2 tuplet
+  },
+  position = {
+    -- Adding 1000 = triple mode: 0, 1, 2
+    1864,  -- 9, 18 whole notes
+    1288,  -- 3, 6  whole notes
+    1096,  -- 1, 2  whole notes
+    48,  -- half note       o
+    24,  -- quarter note    .
+    12,   -- eigth note
+    1003,   -- 32th note, 1 16th
     1001,   -- 1 tuplet, 2 tuplet
   },
   loop = {
     -- Adding 1000 = triple mode: 0, 1, 2
-    1288,  -- 3 whole notes   OOO, OOOOOO
-    1096,  -- 1 whole note    O, OO
+    1864,  -- 9, 18 whole notes
+    1288,  -- 3, 6  whole notes
+    1096,  -- 1, 2  whole notes
     48,  -- half note       o
     24,  -- quarter note    .
-    12,  -- eighth note     x
-    6,   -- 16th note       xx
-    3,   -- 32th note       xxx
+    12,   -- eigth note
+    1003,   -- 32th note, 1 16th
     1001,   -- 1 tuplet, 2 tuplet
   },
 }
@@ -192,6 +200,12 @@ end
 
 -- Display view content (called on load)
 function lib:display(key, opt)
+  if self.event and self.event.pat ~= self.song.edit_pattern then
+    self.event = nil
+  end
+  self.list_e   = nil
+  self.list     = nil
+
   if opt == 'extra' then
     self.extra = not self.extra
   end
@@ -268,14 +282,27 @@ function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
   elseif col == 9 then
-    f = col_button[row]
+    if EXTRA_PARAMS[row] == self.key then
+      f = private.endMulti
+    end
   else
-    f = select_note[row] or grid_button[row]
+    f = private.pressGrid
   end
   if f then
     f(self, row, col)
   else
     self.lseq:press(row, col)
+  end
+end
+
+function private:pressGrid(row, col)
+  if self.list_e then
+    private.pressMulti(self, row, col, self.key)
+  else
+    local f = select_note[row] or grid_button[row]
+    if f then
+      f(self, row, col)
+    end
   end
 end
 
@@ -322,7 +349,7 @@ function lib:editEvent(e, row, col)
   local le = self.event
   self.event = e
   -- turn off highlight current event
-  if self.btn then
+  if self.btn and le then
     -- current on button
     self:setEventState(le)
   end
@@ -339,11 +366,10 @@ function lib:editEvent(e, row, col)
   self.pad:commit()
 end
 
-function lib:setEventState(e)
+function lib:setEventState(e, off_t)
   local pat = e.pat
-  if pat ~= self.song.edit_pattern then
-    return
-  end
+  if pat ~= self.song.edit_pattern then return end
+
   local posid = e.posid
   local row, col = posidToGrid(posid, self.page, 3)
   if not row then
@@ -351,7 +377,17 @@ function lib:setEventState(e)
   end
   local btn = self.pad:button(row, col)
   local b = 2
-  if e.off_t then
+
+  if e == self.list_e then
+    -- Event edited in value list
+    local idx = e.is_chord and 1 or e.index[self.key]
+    btn = self.pad:button(idx, 1)
+    b   = self.bits[self.key][idx][1] + 1
+  elseif self.list_e then
+    return
+  end
+
+  if off_t or e.off_t then
     -- NoteOn
     b = 5
   else
@@ -360,15 +396,28 @@ function lib:setEventState(e)
 
   if e == self.event then
     b = b + 1
+    -- Update params
+    if not self.list_e then
+      local params = self.extra and EXTRA_PARAMS or PARAMS
+      for _, key in ipairs(params) do
+        if key ~= '' then
+          private.loadParam(self, key, e)
+        end
+      end
+    end
   elseif e.mute == 1 then
     b = 7
   end
   btn:setState(EVENT_LIST[b])
+
+  if type(e.off_n) == 'table' then
+    self:setEventState(e.off_n.chord, e.off_t)
+  end
 end
 
 function lib:eventChanged(e)
   if e == self.event then
-    self.editEvent(e)
+    self:editEvent(e)
   end
 end
 
@@ -395,9 +444,22 @@ top_button[POS.COPY] = private.copyDelEvent
 for _, key in ipairs(EXTRA_PARAMS) do
   if key ~= '' then
     grid_button[ROW_INDEX[key]] = function(self, row, col)
-      private.setParam(self, key, row, col)
+      local e = self.event
+      if not e then return end
+      if e[PLURALIZE[key]] then
+        private.editMulti(self, e, key)
+        -- highlight key button in green
+        self.pad:button(ROW_INDEX[key], 9):setState('Green')
+      else
+        private.setParam(self, key, row, col)
+      end
     end
   end
+end
+
+function private:endMulti(row, col)
+  self.pad:button(row, col):setState('Off')
+  self:display()
 end
 
 -- Also used by LBatchView
@@ -464,7 +526,6 @@ function private:setParam(key, row, col, e, states)
       self.list[row] = p + b * r
       self.list_e:save()
     else
-      print('SET', key, p + b * r)
       e:set {
         [key] = p + b * r,
       }
@@ -547,7 +608,12 @@ function private:loadParam(key, e, value, states, row)
     if e.mute == 1 then
       b = b + 3
     end
-    btns[i]:setState(states[b+1])
+    if b == 0 and i == 1 then
+      btns[i]:setState(EVENT_LIST[3])
+    else
+      btns[i]:setState(states[b+1])
+    end
+
   end
 end
 
@@ -573,15 +639,67 @@ function private:loadList(key, e, list, row)
   end
 end
 
+-- Editing multiple values.
+function private:pressMulti(row, col, key)
+  local e  = self.list_e
+  local list = self.list
+  local len = list._len
+  -- Editing multiple notes/velocities/lengths from a single event
+  if row > len then
+    -- create empty value(s)
+    for i=len+1,row do
+      table.insert(list, 0)
+      list._len = i
+      private.loadParam(self, key, e, 0, BIT_STATE, i)
+    end
+  end
+  private.setParam(self, key, row, col, e, BIT_STATE)
+end
+
+-- Edit list of events/lengths/velocities stored in event.
+function private:editMulti(e, key)
+  local key = key or self.key
+  self.key = key
+  local pad = self.pad
+
+  local list = e[PLURALIZE[key]]
+  if not list then
+    list = {e[key], _len = 1}
+    e[PLURALIZE[key]] = list
+  end
+  self.list   = list
+  self.list_e = e
+
+  -- Clear
+  pad:prepare()
+  pad:clear()
+
+  -- Display events
+  local page = 0
+  local row_by_id = {}
+  self.row_by_id = row_by_id
+
+  for row=1,list._len do
+    local value = list[row]
+    local posid = rowToPosid(row, page)
+    private.loadParam(self, key, e, value, BIT_STATE, row)
+  end
+  pad:button(KEY_TO_ROW[key], 9):setState('Green')
+  pad:commit()
+end
+
 -- Share some private stuff with LBatchView and LPresetView
 -- TODO: move this into LSeq
 lib.common = {
   loadParam  = private.loadParam,
   setParam   = private.setParam,
+  pressMulti = private.pressMulti,
+  editMulti  = private.editMulti,
   PARAMS     = PARAMS,
   BIT_STATE  = BIT_STATE,
   EVENT_LIST = EVENT_LIST,
   PLURALIZE  = PLURALIZE,
+  KEY_TO_ROW = KEY_TO_ROW,
   POS        = POS,
 }
 
