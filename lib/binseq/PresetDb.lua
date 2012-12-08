@@ -251,7 +251,7 @@ end
 function lib:setPattern(p)
   assert(p.id, 'Use createPattern to create new objects')
   p.data = yaml.dump {
-    -- nothing yet
+    tuning = p.tuning,
   }
   local stmt = self.update_pattern
   stmt:bind_names(p)
@@ -748,6 +748,7 @@ function private:patternFromRow(row)
     song_id      = row[2],
     sequencer_id = row[3],
     posid        = row[4],
+    tuning       = data.tuning or 0,
   }
   -- We only set db now so that 'set' does not save.
   p.db = self

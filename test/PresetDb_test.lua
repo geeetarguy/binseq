@@ -296,6 +296,17 @@ function should.storeCtrl()
   assertEqual(20, p2.ctrl)
 end
 
+function should.savePatternTuning()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  pat.tuning = 23
+  pat:save()
+
+  local p2 = db:getPattern(6, song.id)
+  assertEqual(23, p2.tuning)
+end
+
 function should.deleteEvent()
   local db = binseq.PresetDb(':memory:')
   -- row, col, page

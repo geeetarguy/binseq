@@ -267,10 +267,12 @@ function lib:trigger(chan)
       local base = chan - 1 + 0x90
       local velo = self.velocity
       local etype = self.etype
+      local pat = self.pat
+      local tuning = pat.tuning
 
       if etype == 'chord_player' then
         -- Chord
-        local chord = self.pat:chord(self.t)
+        local chord = pat:chord(self.t)
         if not chord then
           -- Nothing to play...
           self.off_t = nil
@@ -279,7 +281,7 @@ function lib:trigger(chan)
         local chord_notes = chord.notes or {chord.note}
         local notes = {}
         for _, n in ipairs(chord_notes) do
-          table.insert(notes, {base, n, velo})
+          table.insert(notes, {base, n + tuning, velo})
         end
         notes.chord = chord
         -- Make sure the NoteOff message uses the same note value
@@ -291,8 +293,9 @@ function lib:trigger(chan)
       else
         -- Note
         -- Make sure the NoteOff message uses the same note value
-        self.off_n = self.note
-        return base, self.note, self.velocity
+        local n = self.note + tuning
+        self.off_n = n
+        return base, n, self.velocity
       end
     end
   end

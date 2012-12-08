@@ -381,6 +381,11 @@ top_button[POS.EXTRA] = function(self, row, col)
   end
 end
 
+-- Show pattern settings
+top_button[POS.PATTERN] = function(self, row, col)
+  self:loadView('Main', 'pattern')
+end
+
 -- Show mixer
 top_button[POS.MIXER] = function(self, row, col)
   self:loadView('Pattern', 'mixer')
@@ -388,19 +393,21 @@ end
 
 --=============================================== COLUMN BUTTONS
 -- Show pattern select
-col_press[1] = function(self, row, col)
+col_press[POS.SEQ] = function(self, row, col)
   -- store previous last
   self.plast, self.pkey = self.last_name, self.last_key
   self:loadView('Pattern', 'pattern')
 end
 
-col_press[2] = function(self, row, col)
+col_press[POS.MAIN] = function(self, row, col)
   self:loadView('Main')
 end
 
-col_press[3] = function(self, row, col)
+--[[
+col_press[POS.REC] = function(self, row, col)
   self:loadView('Rec')
 end
+--]]
 
 for i, key in ipairs(PARAMS) do
   if key ~= '' then

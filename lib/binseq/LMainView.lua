@@ -40,7 +40,7 @@ local POS = {
   COPY   = 4,
   TOGGLE = 5,
   -- midi ?
-  PATTERN_INFO = 7,
+  PATTERN= 7,
   MIXER  = 8,
 
   -- column buttons
@@ -213,19 +213,24 @@ function lib:display(key, opt)
   local pad = self.pad
   local song = self.song
   local page = self.page
+
+  self.key = key
+
   -- Clear
   pad:prepare()
   -- Turn on main button
   for col=1,8 do
     if col == POS.EXTRA and self.extra then
       pad:button(0, col):setState('Amber')
+    elseif col == POS.PATTERN and key == 'pattern' then
+      pad:button(0, col):setState('Red')
     else
       pad:button(0, col):setState('Off')
     end
   end
 
   for row=1,8 do
-    if row == POS.MAIN then
+    if row == POS.MAIN and key ~= 'pattern' then
       pad:button(row, 9):setState('Amber')
     else
       pad:button(row, 9):setState('Off')
@@ -257,13 +262,22 @@ function lib:display(key, opt)
   -- editEvent also does a prepare/commit so we must commit before
   pad:commit()
 
-  local e = self.event
+  local e
+  if key == 'pattern' and self.song and self.song.edit_pattern then
+    e = self.song.edit_pattern.global
+  else
+    e = self.event
+  end
+
   if e then
     local posid = e.posid
     if posid then
       local row, col = posidToGrid(posid, page, max)
       self.event = nil
-      if row then
+      if e == e.pat.global then
+        self.btn   = nil
+        self:editEvent(e)
+      elseif row then
         self.btn   = nil
         self:editEvent(e, row, col)
       end
@@ -307,6 +321,10 @@ function private:pressGrid(row, col)
 end
 
 function lib:selectNote(row, col)
+  if self.key == 'pattern' then
+    self.pad:button(0, POS.PATTERN):setState('Off')
+    self.key = nil
+  end
   local posid = gridToPosid(row, col, self.page)
   local e = self.song.edit_pattern:getOrCreateEvent(posid)
 
@@ -318,11 +336,11 @@ function lib:selectNote(row, col)
       return
     end
     self.copy_on = false
-    self.copy_btn:setState('Off')
+    self.pad:button(0, POS.COPY):setState('Off')
   elseif self.del_on == e.posid then
     -- delete
     self.del_on = false
-    self.pad:button(0, 5):setState('Off')
+    self.pad:button(0, POS.COPY):setState('Off')
 
     self.seq.pattern:deleteEvent(e)
     self.pad:button(row, col):setState('Off')
@@ -353,7 +371,11 @@ function lib:editEvent(e, row, col)
     -- current on button
     self:setEventState(le)
   end
-  self.btn = self.pad:button(row, col)
+  if e == e.pat.global then
+    self.btn = self.pad:button(0, POS.PATTERN)
+  else
+    self.btn = self.pad:button(row, col)
+  end
   self.pad:prepare()
     self:setEventState(e)
     -- Load event state in rows 4 to 8

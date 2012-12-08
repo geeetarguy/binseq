@@ -318,6 +318,19 @@ function should.playChord()
  
 end
 
+function should.savePatternTuning()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local glo = pat.global
+  glo:set {
+    note = 4,
+  }
+
+  local p2 = db:getPattern(6, song.id)
+  assertEqual(4, p2.tuning)
+end
+
 
 test.all()
 

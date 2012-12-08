@@ -34,7 +34,11 @@ function lib.new(def)
     -- List of events whose purpose is to change currently playing chord.
     -- The chord changer just increases the current chord_index.
     chord_changers = {},
+    -- Tuning (set in global pseudo event)
+    tuning = 12,
   }
+  -- Global settings that alter playback of all events
+  private.makeGlobal(self)
 
   setmetatable(self, lib)
   if def then
@@ -47,6 +51,8 @@ function lib:set(def)
   for k, v in pairs(def) do
     self[k] = v
   end
+
+  private.copyInGlobal(self)
 
   if self.db then
     self:save()
@@ -163,5 +169,35 @@ end
 function lib:deleteEvent(e)
   e:delete()
   self.events[e.posid] = nil
+end
+
+function private.setGlobal(e, def)
+  local self = e.pat
+  for key, value in pairs(def) do
+    e[key] = value
+    if key == 'note' then
+      self.tuning = value
+    end
+  end
+  -- Save
+  self:save()
+end
+
+function private:copyInGlobal()
+  local glo = self.global
+  glo.note = self.tuning
+end
+
+function private:makeGlobal()
+  local glo = binseq.Event()
+  glo.pat = self
+  glo.set = private.setGlobal
+  glo.posid = 0
+  glo.mute  = 0
+  glo.velocity = 0
+  glo.position = 0
+  glo.loop     = 0
+  glo.length   = 0
+  self.global = glo
 end
 

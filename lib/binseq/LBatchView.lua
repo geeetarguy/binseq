@@ -40,6 +40,7 @@ local PARAMS      = m.PARAMS
 local BIT_STATE   = m.BIT_STATE
 local PLURALIZE   = m.PLURALIZE
 local KEY_TO_ROW  = m.KEY_TO_ROW
+local POS         = m.POS
 
 local rowToPosid = binseq.Event.rowToPosid
 local posidToRow = binseq.Event.posidToRow
@@ -218,7 +219,7 @@ for i, key in ipairs(PARAMS) do
   if key ~= '' then
     col_press[i] = function(self, row, col)
       if key == self.key and self.list_e then
-        private.toggleMulti(self, 0, 5)
+        private.toggleMulti(self, 0, POS.TOGGLE)
       else
         self.lseq:loadView('Batch', key)
       end
@@ -244,7 +245,7 @@ function private:toggleMulti(row, col)
     self.pad:button(0, col):setState('Amber')
   end
 end
-top_button[5] = private.toggleMulti
+top_button[POS.TOGGLE] = private.toggleMulti
 
 function private:pressGrid(row, col)
   local key  = self.key
@@ -275,7 +276,7 @@ function private:pressGrid(row, col)
     if self.edit_multi or e[PLURALIZE[self.key]] then
       self.edit_multi = nil
       private.editMulti(self, e)
-      self.pad:button(0, 5):setState('Green')
+      self.pad:button(0, POS.TOGGLE):setState('Green')
     else
       if col == 1 then
         private.setParam(self, self.key, row, col, e, e.off_t and NOTE_ON_STATE or NOTE_OFF_STATE)
