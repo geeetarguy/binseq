@@ -18,7 +18,6 @@ local lib = {type = 'binseq.Event'}
 lib.__index     = lib
 binseq.Event       = lib
 local private   = {}
-local COPY_KEYS = {'position', 'loop', 'note', 'length', 'velocity', 'mute'}
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -82,30 +81,24 @@ end
 -- Returns true if the event timing info changed (needs reschedule).
 function lib:set(def)
   local need_schedule = false
-  if def.type == 'binseq.Event' then
-    -- copy
-    need_schedule = true
-    for _, key in ipairs(COPY_KEYS) do
-      self[key] = def[key]
-    end
-    self.mute = 1
-  else
-    for key, value in pairs(def) do
-      if key == 'length' then
-        if self.off_t then
-          self.off_t = self.off_t - self.length + value
-        end
-        need_schedule = true
-      elseif key == 'ctrl' then
-        if value == 0 then
-          value = nil
-        end
-        need_schedule = true
-      elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' then
-        need_schedule = true
+  for key, value in pairs(def) do
+    if key == 'length' then
+      if self.off_t then
+        self.off_t = self.off_t - self.length + value
       end
-      self[key] = value
+      need_schedule = true
+    elseif key == 'ctrl' then
+      if value == 0 then
+        value = nil
+      end
+      need_schedule = true
+    elseif key == 'notes' or key == 'velocities' or key == 'lengths' then
+      value._len = #value
+    elseif not need_schedule and key == 'position' or key == 'loop' or key == 'mute' then
+      need_schedule = true
     end
+
+    self[key] = value
   end
 
   if self.db then
@@ -228,11 +221,11 @@ function lib:trigger(chan)
   local pat = self.pat
   local Gv = 0
   if pat then Gv = pat.velocity end
+  local velo = math.min(127,self.velocity + Gv)
 
   if self.off_t then
     --=============================================== NoteOff
     local base = chan - 1 + 0x80
-    local velo = self.velocity + Gv
     self.off_t = nil
 
     if type(self.off_n) == 'table' then
@@ -276,10 +269,9 @@ function lib:trigger(chan)
     else
       --=============================================== NoteOn
       local base = chan - 1 + 0x90
-      local velo = self.velocity + Gv
       local etype = self.etype
       local pat = self.pat
-      local tuning = pat.tuning
+      local note = pat.note
 
       if etype == 'chord_player' then
         -- Chord
@@ -292,7 +284,7 @@ function lib:trigger(chan)
         local chord_notes = chord.notes or {chord.note}
         local notes = {}
         for _, n in ipairs(chord_notes) do
-          table.insert(notes, {base, n + tuning, velo})
+          table.insert(notes, {base, n + note, velo})
         end
         notes.chord = chord
         -- Make sure the NoteOff message uses the same note value
@@ -304,9 +296,9 @@ function lib:trigger(chan)
       else
         -- Note
         -- Make sure the NoteOff message uses the same note value
-        local n = self.note + tuning
+        local n = self.note + note
         self.off_n = n
-        return base, n, self.velocity + Gv
+        return base, n, velo
       end
     end
   end
@@ -351,6 +343,28 @@ function lib:save()
   local db = self.db
   assert(db, 'Cannot save event without database')
   db:setEvent(self)
+end
+
+function lib:dataTable()
+  return {
+    note     = self.note,
+    notes    = self.notes,
+    velocity = self.velocity,
+    velocities = self.velocities,
+    length   = self.length,
+    lengths  = self.lengths,
+    ctrl     = self.ctrl,
+    position = self.position,
+    loop     = self.loop,
+    mute     = self.mute,
+  }
+end
+
+function lib:dump()
+  return {
+    type = self.type,
+    data = self:dataTable(),
+  }
 end
 
 function lib:delete()

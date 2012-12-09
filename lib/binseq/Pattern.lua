@@ -6,7 +6,7 @@
   A Pattern contains:
     * list of events
     * global settings
-      => note (tuning), velocity, length, position, loop (truncate evt loop)
+      => note (note), velocity, length, position, loop (truncate evt loop)
 
   The pattern responds to
     * enable (adds itself to the sequencer)
@@ -37,7 +37,7 @@ function lib.new(def)
     -- The chord changer just increases the current chord_index.
     chord_changers = {},
     -- Tuning (set in global pseudo event)
-    tuning = 12,
+    note = 12,
     -- Move start positions
     position = 0,
     -- Restrict loop size (0 = no restriction)
@@ -57,7 +57,14 @@ end
 
 function lib:set(def)
   for k, v in pairs(def) do
-    self[k] = v
+    if k == 'data' then
+      self.note   = v.note   or 0
+      self.position = v.position or 0
+      self.loop     = v.loop     or 0
+      self.velocity = v.velocity or 0
+    else
+      self[k] = v
+    end
   end
 
   private.copyInGlobal(self)
@@ -185,7 +192,7 @@ function private.setGlobal(e, def)
   for key, value in pairs(def) do
     e[key] = value
     if key == 'note' then
-      self.tuning = value
+      self.note = value
     elseif key == 'loop' then
       need_schedule = true
       self.loop = value
@@ -209,9 +216,31 @@ function private.setGlobal(e, def)
   end
 end
 
+function lib:dataTable()
+  return {
+    note     = self.note,
+    position = self.position,
+    loop     = self.loop,
+    velocity = self.velocity,
+  }
+end
+
+function lib:dump()
+  local events = {}
+  for posid, e in pairs(self.events) do
+    events[posid] = e:dump()
+  end
+
+  return {
+    type   = self.type,
+    data   = self:dataTable(),
+    events = events,
+  }
+end
+
 function private:copyInGlobal()
   local glo = self.global
-  glo.note     = self.tuning
+  glo.note     = self.note
   glo.loop     = self.loop
   glo.position = self.position
   glo.velocity = self.velocity

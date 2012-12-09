@@ -89,12 +89,16 @@ function should.computeVelocityWithGlobal()
   }
   local pat = binseq.Pattern()
   e.pat = pat
-  pat.tuning   = 0
+  pat.note   = 0
   pat.velocity = 48
   e:nextTrigger(0)
   local a, b, c = e:trigger()
   assertEqual(65, b)
   assertEqual(48+20, c)
+  pat.velocity = 127
+  a, b, c = e:trigger()
+  assertEqual(65, b)
+  assertEqual(127, c)
 end
 
 function should.reSchedule(t)
@@ -284,7 +288,7 @@ function should.allowNoteChangeInNoteOn()
     note = 60,
   }
   e.pat = binseq.Pattern()
-  e.pat.tuning = 0
+  e.pat.note = 0
 
   -- NoteOn @ 0
   e:nextTrigger(0)
@@ -362,7 +366,7 @@ function should.cycleThroughNotes()
     notes = {10,12,17,13, _len = 4},
   }
   e.pat = binseq.Pattern()
-  e.pat.tuning = 0
+  e.pat.note = 0
 
   e:nextTrigger(0, 0, nil)
   local _, n = e:trigger()
@@ -407,7 +411,7 @@ function should.cycleThroughVelocities()
     velocities = {10,12,17,13, _len = 4},
   }
   e.pat = binseq.Pattern()
-  e.pat.tuning = 0
+  e.pat.note = 0
 
   e:nextTrigger(0, 0, nil)
   local _, _, n = e:trigger()
@@ -452,7 +456,7 @@ function should.cycleThroughLengths()
     lengths = {10,12,17,13, _len = 4},
   }
   e.pat = binseq.Pattern()
-  e.pat.tuning = 0
+  e.pat.note = 0
 
   e:nextTrigger(0, 0, nil)
   e:trigger()
@@ -488,6 +492,31 @@ function should.cycleThroughLengths()
   assertEqual(10, n)
   -- NoteOff
   e:trigger()
+end
+
+function should.dumpEvent()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local e = pat:getOrCreateEvent(10)
+  e:set {
+    note = 1,
+    velocity = 2,
+    length = 3,
+    position = 4,
+    loop = 5,
+    mute = 0,
+  }
+  local p = e:dump()
+  assertEqual('binseq.Event', p.type)
+  assertValueEqual({
+    note = 1,
+    velocity = 2,
+    length = 3,
+    position = 4,
+    loop = 5,
+    mute = 0,
+  }, p.data)
 end
 
 test.all()

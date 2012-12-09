@@ -1,3 +1,8 @@
+===> COPY / DEL (pattern, event, song)
+
+On copy song ==> create yaml ~/.LoveSeq.song (on copy enable, check for file
+and load). On paste, remove .LoveSeq.song.
+
 
 probability
 ===========

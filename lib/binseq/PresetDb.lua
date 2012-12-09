@@ -250,12 +250,7 @@ end
 
 function lib:setPattern(p)
   assert(p.id, 'Use createPattern to create new objects')
-  p.data = yaml.dump {
-    tuning   = p.tuning,
-    position = p.position,
-    loop     = p.loop,
-    velocity = p.velocity,
-  }
+  p.data = yaml.dump(p:dataTable())
   local stmt = self.update_pattern
   stmt:bind_names(p)
   stmt:step()
@@ -503,18 +498,7 @@ end
 function lib:setEvent(e)
   assert(e.id, 'Use createEvent to create new objects')
   local stmt = self.update_event
-  e.data = yaml.dump {
-    note     = e.note,
-    notes    = e.notes,
-    velocity = e.velocity,
-    velocities = e.velocities,
-    length   = e.length,
-    lengths  = e.lengths,
-    ctrl     = e.ctrl,
-    position = e.position,
-    loop     = e.loop,
-    mute     = e.mute,
-  }
+  e.data = yaml.dump(e:dataTable())
   stmt:bind_names(e)
   stmt:step()
   stmt:reset()
@@ -751,10 +735,7 @@ function private:patternFromRow(row)
     song_id      = row[2],
     sequencer_id = row[3],
     posid        = row[4],
-    tuning       = data.tuning   or 0,
-    position     = data.position or 0,
-    loop         = data.loop     or 0,
-    velocity     = data.velocity or 0,
+    data         = data,
   }
   -- We only set db now so that 'set' does not save.
   p.db = self
@@ -773,24 +754,10 @@ function private:eventFromRow(row)
     id           = row[1],
     pattern_id   = row[2],
     posid        = row[3],
-    -- TODO data fields are copied 3 times (yaml.load, here, and in Event:set).
-    note     = data.note,
-    notes    = data.notes,
-    velocity = data.velocity,
-    velocities = data.velocities,
-    length   = data.length,
-    lengths  = data.lengths,
-    ctrl     = data.ctrl,
-    position = data.position,
-    loop     = data.loop,
-    mute     = data.mute,
   }
-  for _, k in ipairs {'notes', 'velocities', 'lengths'} do
-    local l = e[k]
-    if l then
-      l._len = #l
-    end
-  end
+  -- TODO data fields are copied 3 times (yaml.load, here, and in Event:set).
+  e:set(data)
+
   -- We only set db now so that 'set' does not save.
   e.db = self
   return e

@@ -94,7 +94,7 @@ end
 function chordPattern()
   local db = binseq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
-  pat.tuning = 0
+  pat.note = 0
   -- Chord notes
   local e1 = pat:getOrCreateEvent(1)
   local e2 = pat:getOrCreateEvent(2)
@@ -329,7 +329,7 @@ function should.savePatternTuning()
   }
 
   local p2 = db:getPattern(6, song.id)
-  assertEqual(4, p2.tuning)
+  assertEqual(4, p2.note)
 end
 
 function should.savePatternLoop()
@@ -390,6 +390,48 @@ function should.reScheduleEventsOnGlobal()
     position = 10,
   }
   assertEqual(e, aseq.test_e)
+end
+
+function should.dumpPattern()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local e = pat:getOrCreateEvent(10)
+  e:set {
+    note = 11,
+    velocity = 12,
+    length = 13,
+    position = 14,
+    loop = 15,
+    mute = 0,
+  }
+  pat.global:set {
+    note = 1,
+    velocity = 2,
+    position = 3,
+    loop = 4,
+  }
+  local p = pat:dump()
+  assertEqual('binseq.Pattern', p.type)
+  assertValueEqual({
+    note = 1,
+    velocity = 2,
+    position = 3,
+    loop = 4,
+  }, p.data)
+  assertValueEqual({
+    [10] = {
+      type = 'binseq.Event',
+      data = {
+        note = 11,
+        velocity = 12,
+        length = 13,
+        position = 14,
+        loop = 15,
+        mute = 0,
+      }
+    }
+  }, p.events)
 end
 
 test.all()
