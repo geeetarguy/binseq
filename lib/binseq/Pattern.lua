@@ -174,6 +174,12 @@ end
 function lib:delete()
   local db = self.db
   assert(db, 'Cannot delete pattern without database')
+  self:setSequencer(nil)
+  local song = self.song
+  if song and song.edit_pattern == self then
+    song.edit_pattern = nil
+  end
+
   db:deletePattern(self)
   self.deleted = true
   for _, e in pairs(self.events) do
@@ -235,6 +241,14 @@ function lib:dump()
     data   = self:dataTable(),
     events = events,
   }
+end
+
+function lib:copy(dump)
+  self:set(dump.data)
+  for posid, d in pairs(dump.events) do
+    local e = self:getOrCreateEvent(posid)
+    e:copy(d)
+  end
 end
 
 function private:copyInGlobal()

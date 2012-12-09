@@ -13,11 +13,15 @@ local lib = {type = 'binseq.LSongsView', name = 'Songs'}
 lib.__index        = lib
 binseq.LSongsView     = lib
 -- Map top buttons
-local top_button   = {}
-local private      = {}
-private.nameToBits = binseq.LHomeView.common.nameToBits
-local gridToPosid  = binseq.Event.gridToPosid 
-local posidToGrid  = binseq.Event.posidToGrid
+local top_button    = {}
+local private       = {}
+local m             = binseq.LMainView.common
+private.nameToBits  = binseq.LHomeView.common.nameToBits
+local gridToPosid   = binseq.Event.gridToPosid 
+local posidToGrid   = binseq.Event.posidToGrid
+local POS           = m.POS
+private.showCopyDel = m.showCopyDel
+
 
 --=============================================== CONSTANTS
 
@@ -60,6 +64,7 @@ function lib:display()
   pad:prepare()
   pad:clear()
   pad:button(0, 1):setState('Amber')
+  private.showCopyDel(self, POS.COPY)
 
   -- Display songs
   for row=1,8 do
@@ -99,83 +104,62 @@ function lib:setEventState(e)
   private.showButtonState(self, song, nil, nil, e)
 end
 
---[[
+
 --=============================================== TOP BUTTONS
 -- Copy/Del pattern
-top_button[5] = function(self, row, col)
-  if self.copy_on then
-    self.copy_on = false
-    self.del_on = true
-    self.pad:button(row, col):setState('Red')
-  elseif self.del_on then
-    self.del_on = false
-    self.pad:button(row, col):setState('Off')
+top_button[POS.COPY] = function(self, row, col)
+  local btn = self.pad:button(row, col)
+  if self.copy then
+    if type(self.copy) == 'table' then
+      self.copy = nil
+      self.del = nil
+      btn:setState('Off')
+    else
+      self.copy = nil
+      self.del = true
+      btn:setState('Red')
+    end
+  elseif self.del then
+    self.del = nil
+    btn:setState('Off')
   else
-    -- enable copy
-    self.copy_on = true
-    self.pad:button(row, col):setState('Green')
+    self.copy = true
+    btn:setState('Amber')
   end
 end
-
--- Toggle playback mode
-top_button[4] = function(self, row, col)
-  self.toggle = not self.toggle
-  self.pad:button(row, col):setState(self.toggle and 'Green' or 'Off')
-end
-
-function private:sequencerPress(row, col)
-  local song = self.song
-  local aseq = song.sequencers[col]
-  if aseq then
-    -- remove
-    aseq:delete()
-    song.sequencers[col] = nil
-    for posid, pat in pairs(aseq.patterns) do
-      private.assignSequencer(self, song, pat)
-    end
-
-    self.pad:button(0, col):setState('Off')
-  else
-    local aseq = song:getOrCreateSequencer(col)
-    aseq:set {
-      channel = col
-    }
-    aseq.playback = self.lseq.playback
-
-    for _, pat in pairs(song.patterns) do
-      if pat.seq then
-        private.assignSequencer(self, song, pat)
-      end
-    end
-    self.pad:button(0, col):setState('Green')
-  end
-end
-
-function private:assignSequencer(song, pat, col)
-  if not col then
-    local r, c = posidToGrid(pat.posid, 0)
-    col = c
-    print('assignSequencer', pat.posid, col, p)
-  end
-
-  local seq
-  for i=col,1,-1 do
-    seq = song.sequencers[i]
-    if seq then
-      break
-    end
-  end
-  if seq then
-    pat:setSequencer(seq)
-  end
-end
---]]
 
 --=============================================== GRID
 function private:pressGrid(row, col)
   local pad  = self.pad
   local song = self.song
-  self.lseq:loadSong(gridToPosid(row, col, self.page))
+  local posid = gridToPosid(row, col, self.page)
+  local db = self.lseq.db
+
+  local song = self.songs[posid]
+
+  if self.copy == true then
+    if song then
+      self.copy = song:dump()
+      self.pad:button(0, POS.COPY):setState('Green')
+    end
+  elseif self.copy then
+    song = song or db:getOrCreateSong(posid)
+    self.songs[posid] = song
+    song:copy(self.copy)
+    private.showButtonState(self, song)
+  elseif type(self.del) == 'table' then
+    if self.del == song then
+      song:delete()
+      self.songs[posid] = nil
+    end
+    self.del = nil
+    self:display()
+  elseif self.del then
+    self.del = song
+    self.pad:button(row, col):setState('Red')
+  else
+    self.lseq:loadSong(posid)
+  end
 end
 
 function private:showButtonState(song, row, col, e)

@@ -271,7 +271,7 @@ function private:pressGrid(row, col)
       local le = self.lseq.last_e
       if le then
         -- copy
-        e:copy(le:dump().data)
+        e:copy(le:dump())
       end
       if key ~= 'mute' then
         e:set {

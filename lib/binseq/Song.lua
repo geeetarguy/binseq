@@ -112,13 +112,38 @@ function lib:save()
   db:setSong(self)
 end
 
+function lib:dump()
+  local patterns = {}
+  for posid, pat in pairs(self.patterns) do
+    patterns[posid] = pat:dump()
+  end
+
+  return {
+    type   = self.type,
+    data   = {
+      name = self.name,
+    },
+    patterns = patterns,
+  }
+end
+
+function lib:copy(dump)
+  self:set(dump.data)
+  for posid, d in pairs(dump.patterns) do
+    local pat = self:getOrCreatePattern(posid)
+    pat:copy(d)
+  end
+end
+
 function lib:delete()
+  self:allOff()
   local db = self.db
   assert(db, 'Cannot delete song without database')
   db:deleteSong(self)
   self.deleted = true
 end
 
+-- TODO: is this used ?
 function lib:deleteEvent(e)
   e:delete()
   self.events[e.posid] = nil

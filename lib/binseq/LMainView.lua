@@ -225,15 +225,7 @@ function lib:display(key, opt)
     elseif col == POS.PATTERN and key == 'pattern' then
       pad:button(0, col):setState('Red')
     elseif col == POS.COPY then
-      if self.copy == true then
-        pad:button(0, col):setState('Amber')
-      elseif self.copy then
-        pad:button(0, col):setState('Green')
-      elseif self.del then
-        pad:button(0, col):setState('Red')
-      else
-        pad:button(0, col):setState('Off')
-      end
+      private.showCopyDel(self, col)
     else
       pad:button(0, col):setState('Off')
     end
@@ -336,35 +328,45 @@ function lib:selectNote(row, col)
     self.key = nil
   end
   local posid = gridToPosid(row, col, self.page)
-  local e = self.song.edit_pattern:getOrCreateEvent(posid)
+  local e = self.song.edit_pattern.events[posid]
 
   if self.copy == true then
-    self.copy = e:dump()
-    -- Mute new events
-    self.copy.data.mute = 1
-    self.pad:button(0, POS.COPY):setState('Green')
+    if e then
+      self.copy = e:dump()
+      -- Mute new events
+      self.copy.data.mute = 1
+      self.pad:button(0, POS.COPY):setState('Green')
+    end
   elseif self.copy then
-    e:copy(self.copy.data)
-  elseif self.del == e then
-    -- delete
+    e = e or self.song.edit_pattern:getOrCreateEvent(posid)
+    e:copy(self.copy)
+    self:editEvent(e, row, col)
+  elseif type(self.del) == 'table' then
+    if self.del == e then
+      -- delete
+      e:delete()
+      self.pad:button(row, col):setState('Off')
+      if e == self.event then
+        -- clear
+        self.event = nil
+        self.btn   = nil
+        self:display()
+      end
+    end
     self.del = nil
     self.pad:button(0, POS.COPY):setState('Off')
-
-    e:delete()
-    self.pad:button(row, col):setState('Off')
-    if e == self.event then
-      -- clear
-      self.event = nil
-      self.btn   = nil
-      self:display()
-    end
-    return
   elseif self.del then
-    self.del = e
-    self.pad:button(row, col):setState('Red')
-    return
+    if e then
+      self.del = e
+      self.pad:button(row, col):setState('Red')
+    else
+      self.del = nil
+      self.pad:button(row, col):setState('Off')
+    end
+  else
+    e = e or self.song.edit_pattern:getOrCreateEvent(posid)
+    self:editEvent(e, row, col)
   end
-  self:editEvent(e, row, col)
 end
 grid_button[1] = lib.selectNote
 grid_button[2] = lib.selectNote
@@ -456,7 +458,7 @@ function lib:eventChanged(e)
   end
 end
 
-function private:copyDelEvent(row, col)
+top_button[POS.COPY] = function(self, row, col)
   local btn = self.pad:button(row, col)
   if self.copy then
     if type(self.copy) == 'table' then
@@ -481,7 +483,6 @@ function private:copyDelEvent(row, col)
     end
   end
 end
-top_button[POS.COPY] = private.copyDelEvent
 
 for _, key in ipairs(EXTRA_PARAMS) do
   if key ~= '' then
@@ -730,6 +731,19 @@ function private:editMulti(e, key)
   pad:commit()
 end
 
+function private:showCopyDel(col)
+  local pad = self.pad
+  if self.copy == true then
+    pad:button(0, col):setState('Amber')
+  elseif self.copy then
+    pad:button(0, col):setState('Green')
+  elseif self.del then
+    pad:button(0, col):setState('Red')
+  else
+    pad:button(0, col):setState('Off')
+  end
+end
+
 -- Share some private stuff with LBatchView and LPresetView
 -- TODO: move this into LSeq
 lib.common = {
@@ -737,6 +751,7 @@ lib.common = {
   setParam   = private.setParam,
   pressMulti = private.pressMulti,
   editMulti  = private.editMulti,
+  showCopyDel= private.showCopyDel,
   PARAMS     = PARAMS,
   BIT_STATE  = BIT_STATE,
   EVENT_LIST = EVENT_LIST,

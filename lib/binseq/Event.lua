@@ -118,14 +118,14 @@ function lib:set(def)
   end
 end
 
-function lib:copy(data)
+function lib:copy(dump)
   -- These values may not be present in data and would not be overwriten.
   self.index = {}
   self.velocities = nil
   self.lengths = nil
   self.notes = nil
   self.ctrl = nil
-  self:set(data)
+  self:set(dump.data)
 end
 
 function lib:setPattern(pat)

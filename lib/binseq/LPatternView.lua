@@ -21,6 +21,7 @@ local m             = binseq.LMainView.common
 local gridToPosid   = binseq.Event.gridToPosid 
 local posidToGrid   = binseq.Event.posidToGrid
 local POS           = m.POS
+private.showCopyDel = m.showCopyDel
 
 --=============================================== CONSTANTS
 -- Last column button parameter selection
@@ -76,7 +77,7 @@ function lib:display(key)
         pad:button(0, col):setState('Off')
       end
     elseif col == POS.COPY then
-      pad:button(0, col):setState(self.copy_on and 'Green' or self.del_on and 'Red' or 'Off')
+      private.showCopyDel(self, col)
     elseif col == POS.TOGGLE then
       pad:button(0, col):setState(self.toggle and 'Green' or 'Off')
     elseif col == POS.MIXER then
@@ -173,16 +174,21 @@ end
 --=============================================== TOP BUTTONS
 -- Copy/Del pattern
 top_button[POS.COPY] = function(self, row, col)
-  if self.copy_on then
-    self.copy_on = false
-    self.del_on = true
-  elseif self.del_on then
-    self.del_on = false
+  if self.copy then
+    if type(self.copy) == 'table' then
+      self.copy = nil
+      self.del = nil
+    else
+      self.copy = nil
+      self.del = true
+    end
+  elseif self.del then
+    self.del = nil
   else
-    -- enable copy
-    self.copy_on = true
+    self.copy = true
   end
-  self:display()
+  -- During copy or delete: do not display enabled/playing patterns.
+  self:display(self.key)
 end
 
 -- Toggle playback mode
@@ -199,36 +205,26 @@ function private:pressGrid(row, col)
   local pat = self.patterns[posid]
                      
 
-  if false and self.copy_on then
-    --=============================================== FIXME !!!
-    if song.edit_pattern then
-      -- copy
-      self.patterns[posid] = song.db:copyPattern(posid, song.edit_pattern)
-    else
-      return
-    end
-    self.copy_on = false
-    self:display()
-  elseif false and self.del_on == pat then
-    -- delete
-    self.del_on = true
-    pat:delete()
-    self.patterns[posid] = nil
-    if pat == song.edit_pattern then
-      -- clear
-      song.edit_pattern = nil
-    end
-    self:display()
-
-  elseif false and self.del_on then
-    if type(self.del_on) == 'table' then
-      private.showButtonState(self, self.del_on)
-    end
-    self.del_on = true
+  if self.copy == true then
     if pat then
-      self.del_on = pat
-      pad:button(row, col):setState('Red')
+      self.copy = pat:dump()
+      self.pad:button(0, POS.COPY):setState('Green')
     end
+  elseif self.copy then
+    pat = pat or song:getOrCreatePattern(posid)
+    self.patterns[posid] = pat
+    pat:copy(self.copy)
+    private.showButtonState(self, pat)
+  elseif type(self.del) == 'table' then
+    if self.del == pat then
+      pat:delete()
+      self.patterns[posid] = nil
+    end
+    self.del = nil
+    self:display()
+  elseif self.del then
+    self.del = pat
+    self.pad:button(row, col):setState('Red')
   elseif self.key == 'mixer' then
     -- enable patterns for sequencer playback
     local pat = song.patterns[posid]
@@ -295,7 +291,9 @@ function private:showButtonState(pat, row, col, e)
     end
   end
   local b
-  if self.key == 'mixer' and not self.copy_on and not self.del_on then
+  if self.copy or self.del then
+    b = 2
+  elseif self.key == 'mixer' then
     b = pat.seq and 3 or 2
   else
     b = self.song.edit_pattern == pat and 3 or 2
@@ -304,6 +302,7 @@ function private:showButtonState(pat, row, col, e)
     -- + NoteOn
     b = b + 2
   end
+
   self.pad:button(row, col):setState(PART_STATE[b])
 end
 
