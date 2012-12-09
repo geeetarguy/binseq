@@ -143,7 +143,10 @@ function private:pressGrid(row, col)
       self.pad:button(0, POS.COPY):setState('Green')
     end
   elseif self.copy then
-    song = song or db:getOrCreateSong(posid)
+    if song then
+      song:delete()
+    end
+    song = db:getOrCreateSong(posid)
     self.songs[posid] = song
     song:copy(self.copy)
     private.showButtonState(self, song)
