@@ -358,6 +358,19 @@ function should.savePatternPosition()
   assertEqual(10, p2.position)
 end
 
+function should.savePatternVelocity()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local glo = pat.global
+  glo:set {
+    velocity = 16,
+  }
+
+  local p2 = db:getPattern(6, song.id)
+  assertEqual(16, p2.velocity)
+end
+
 function should.reScheduleEventsOnGlobal()
   local db = binseq.PresetDb(':memory:')
   local song = db:getOrCreateSong(5)

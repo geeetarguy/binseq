@@ -42,6 +42,8 @@ function lib.new(def)
     position = 0,
     -- Restrict loop size (0 = no restriction)
     loop   = 0,
+    -- Add to velocity
+    velocity = 0,
   }
   -- Global settings that alter playback of all events
   private.makeGlobal(self)
@@ -190,6 +192,8 @@ function private.setGlobal(e, def)
     elseif key == 'position' then
       need_schedule = true
       self.position = value
+    elseif key == 'velocity' then
+      self.velocity = value
     end
   end
   -- Save
@@ -210,6 +214,7 @@ function private:copyInGlobal()
   glo.note     = self.tuning
   glo.loop     = self.loop
   glo.position = self.position
+  glo.velocity = self.velocity
 end
 
 function private:makeGlobal()

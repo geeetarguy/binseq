@@ -225,10 +225,14 @@ function lib:trigger(chan)
     return nil
   end
 
+  local pat = self.pat
+  local Gv = 0
+  if pat then Gv = pat.velocity end
+
   if self.off_t then
     --=============================================== NoteOff
     local base = chan - 1 + 0x80
-    local velo = self.velocity
+    local velo = self.velocity + Gv
     self.off_t = nil
 
     if type(self.off_n) == 'table' then
@@ -272,7 +276,7 @@ function lib:trigger(chan)
     else
       --=============================================== NoteOn
       local base = chan - 1 + 0x90
-      local velo = self.velocity
+      local velo = self.velocity + Gv
       local etype = self.etype
       local pat = self.pat
       local tuning = pat.tuning
@@ -302,7 +306,7 @@ function lib:trigger(chan)
         -- Make sure the NoteOff message uses the same note value
         local n = self.note + tuning
         self.off_n = n
-        return base, n, self.velocity
+        return base, n, self.velocity + Gv
       end
     end
   end

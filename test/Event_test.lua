@@ -80,6 +80,23 @@ function should.computeTriggerTimeWithGlobalLoop()
   assertEqual(148, e:nextTrigger(t))
 end
 
+function should.computeVelocityWithGlobal()
+  local e = binseq.Event {
+    position = 48,
+    loop = 128,
+    velocity = 20,
+    note = 65,
+  }
+  local pat = binseq.Pattern()
+  e.pat = pat
+  pat.tuning   = 0
+  pat.velocity = 48
+  e:nextTrigger(0)
+  local a, b, c = e:trigger()
+  assertEqual(65, b)
+  assertEqual(48+20, c)
+end
+
 function should.reSchedule(t)
   local aseq = {}
   function aseq:reSchedule(e)

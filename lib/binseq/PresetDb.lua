@@ -254,6 +254,7 @@ function lib:setPattern(p)
     tuning   = p.tuning,
     position = p.position,
     loop     = p.loop,
+    velocity = p.velocity,
   }
   local stmt = self.update_pattern
   stmt:bind_names(p)
@@ -753,6 +754,7 @@ function private:patternFromRow(row)
     tuning       = data.tuning   or 0,
     position     = data.position or 0,
     loop         = data.loop     or 0,
+    velocity     = data.velocity or 0,
   }
   -- We only set db now so that 'set' does not save.
   p.db = self
