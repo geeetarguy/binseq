@@ -118,6 +118,16 @@ function lib:set(def)
   end
 end
 
+function lib:copy(data)
+  -- These values may not be present in data and would not be overwriten.
+  self.index = {}
+  self.velocities = nil
+  self.lengths = nil
+  self.notes = nil
+  self.ctrl = nil
+  self:set(data)
+end
+
 function lib:setPattern(pat)
   assert(not self.pat, "Cannot change pattern")
   self.pat = pat
@@ -368,11 +378,12 @@ function lib:dump()
 end
 
 function lib:delete()
-  -- FIXME: make sure event removed from sequencer and pattern...
   local db = self.db
   assert(db, 'Cannot delete event without database')
   db:deleteEvent(self)
   self.deleted = true
+  if self.seq then self:setSequencer(nil) end
+  if self.pat then self.pat:removeEvent(self) end
 end
 
 function private:computeType()

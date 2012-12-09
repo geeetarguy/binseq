@@ -181,8 +181,7 @@ function lib:delete()
   end
 end
 
-function lib:deleteEvent(e)
-  e:delete()
+function lib:removeEvent(e)
   self.events[e.posid] = nil
 end
 

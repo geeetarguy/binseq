@@ -224,6 +224,16 @@ function lib:display(key, opt)
       pad:button(0, col):setState('Amber')
     elseif col == POS.PATTERN and key == 'pattern' then
       pad:button(0, col):setState('Red')
+    elseif col == POS.COPY then
+      if self.copy == true then
+        pad:button(0, col):setState('Amber')
+      elseif self.copy then
+        pad:button(0, col):setState('Green')
+      elseif self.del then
+        pad:button(0, col):setState('Red')
+      else
+        pad:button(0, col):setState('Off')
+      end
     else
       pad:button(0, col):setState('Off')
     end
@@ -328,21 +338,19 @@ function lib:selectNote(row, col)
   local posid = gridToPosid(row, col, self.page)
   local e = self.song.edit_pattern:getOrCreateEvent(posid)
 
-  if self.copy_on then
-    if self.event then
-      e = self.seq:setEvent(posid, self.event)
-      e.mute = 1
-    else
-      return
-    end
-    self.copy_on = false
-    self.pad:button(0, POS.COPY):setState('Off')
-  elseif self.del_on == e.posid then
+  if self.copy == true then
+    self.copy = e:dump()
+    -- Mute new events
+    self.copy.data.mute = 1
+    self.pad:button(0, POS.COPY):setState('Green')
+  elseif self.copy then
+    e:copy(self.copy.data)
+  elseif self.del == e then
     -- delete
-    self.del_on = false
+    self.del = nil
     self.pad:button(0, POS.COPY):setState('Off')
 
-    self.seq.pattern:deleteEvent(e)
+    e:delete()
     self.pad:button(row, col):setState('Off')
     if e == self.event then
       -- clear
@@ -351,8 +359,8 @@ function lib:selectNote(row, col)
       self:display()
     end
     return
-  elseif self.del_on then
-    self.del_on = e.posid
+  elseif self.del then
+    self.del = e
     self.pad:button(row, col):setState('Red')
     return
   end
@@ -363,7 +371,12 @@ grid_button[2] = lib.selectNote
 grid_button[3] = lib.selectNote
 
 function lib:editEvent(e, row, col)
+  if self.list_e then
+    private.editMulti(self, e, self.key)
+    return
+  end
   -- last event
+  self.lseq.last_e = e
   local le = self.event
   self.event = e
   -- turn off highlight current event
@@ -444,21 +457,28 @@ function lib:eventChanged(e)
 end
 
 function private:copyDelEvent(row, col)
-  if self.copy_on then
-    self.copy_on = nil
-    self.del_on = true
-    self.copy_btn:setState('Red')
-  elseif self.del_on then
-    self.del_on = nil
-    self.copy_btn:setState('Off')
-  else
-    self.copy_on = true
-    local btn = self.copy_btn
-    if not btn then
-      btn = self.pad:button(row, col)
-      self.copy_btn = btn
+  local btn = self.pad:button(row, col)
+  if self.copy then
+    if type(self.copy) == 'table' then
+      self.copy = nil
+      self.del = nil
+      btn:setState('Off')
+    else
+      self.copy = nil
+      self.del = true
+      btn:setState('Red')
     end
-    btn:setState('Green')
+  elseif self.del then
+    self.del = nil
+    btn:setState('Off')
+  else
+    self.copy = true
+    if self.event then
+      self.event = nil
+      self:display()
+    else
+      btn:setState('Amber')
+    end
   end
 end
 top_button[POS.COPY] = private.copyDelEvent

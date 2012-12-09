@@ -164,6 +164,10 @@ function lib:setEventState(e, off_t)
     if idx then
       b = 1
       btn = self.pad:button(row, idx)
+    elseif e[PLURALIZE[key]] then
+      -- ignore (not played yet).
+      b = 1
+      btn = self.pad:button(row, 1)
     else
       b   = self.bits[key][row][1] + 1
       btn = self.pad:button(row, 1)
@@ -188,6 +192,10 @@ end
 
 -- Used to reload event data on mute change
 function lib:editEvent(e)
+  if self.list_e then
+    private.editMulti(self, e, self.key)
+    return
+  end
   local key = self.key
   local row = posidToRow(e.posid, self.page)
 
@@ -260,9 +268,10 @@ function private:pressGrid(row, col)
       local posid = rowToPosid(row, self.page)
       -- new
       e = song.edit_pattern:getOrCreateEvent(posid)
-      if self.last_e then
+      local le = self.lseq.last_e
+      if le then
         -- copy
-        e:set(self.last_e)
+        e:copy(le:dump().data)
       end
       if key ~= 'mute' then
         e:set {
@@ -284,6 +293,5 @@ function private:pressGrid(row, col)
         private.setParam(self, self.key, row, col, e, BIT_STATE)
       end
     end
-    self.last_e = e
   end
 end
