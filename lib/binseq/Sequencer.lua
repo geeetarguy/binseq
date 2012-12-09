@@ -5,9 +5,7 @@
 
   A Sequencer contains:
     * list of active patterns
-    * global settings
-      => note, velocity, length, position, loop
-      => channel, mute, pattern mode (single, multiple, latch)
+      => channel
 
   The sequencer responds to
     * play(t): trigger events for all active patterns
@@ -45,12 +43,6 @@ function lib.new(def)
     patterns = {},
     -- List of active controls by ctrl
     ctrls    = {},
-    -- Global alterations
-    note     = 0,
-    velocity = 0,
-    length   = 0,
-    position = 0,
-    loop     = 0,
   }
   setmetatable(self, lib)
   if def then
@@ -66,13 +58,6 @@ end
 
 function lib:set(def)
   for k, v in pairs(def) do
-    if k == 'loop' then
-      if v > 0 then
-        self.loop_v = v
-      else
-        self.loop_v = nil
-      end
-    end
     self[k] = v
   end
 
@@ -143,13 +128,11 @@ function lib:move(t)
   -- Clear list
   self.list = {}
   local list = self.list
-  local Gs = self.position
-  local Gm = self.loop_v
 
   -- schedule all active patterns
   for _, pat in pairs(self.patterns) do
     for _, e in pairs(pat.events) do
-      e:nextTrigger(t, Gs, Gm)
+      e:nextTrigger(t)
       if e.t then
         private.insertInList(list, e)
       end
@@ -168,7 +151,7 @@ function lib:reSchedule(e, not_now)
 end
 
 function lib:schedule(e, not_now)
-  e:nextTrigger(self.t, self.position, self.loop_v, not_now)
+  e:nextTrigger(self.t, not_now)
   if e.t then
     private.insertInList(self.list, e)
   end

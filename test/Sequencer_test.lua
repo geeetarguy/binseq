@@ -400,8 +400,8 @@ function should.scheduleCtrl(t)
   }, t.midi)
   t.midi = nil
 
-  -- cheat last_ct (used to not send controls faster then 10Hz)
-  aseq.last_ct = -1000
+  -- cheat last_ct (used to not send controls faster then max Hz)
+  aseq.ctrls[22]._last_ct = -1000
   -- Control ramp
   aseq:step(99) -- 96 + 3 (half length)
   assertValueEqual({

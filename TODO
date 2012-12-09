@@ -2,7 +2,7 @@
 probability
 ===========
 
-If left most bit of 'ctrl' is 1 on then 'ctrl' becomes 'probability'
+If left-most bit of 'ctrl' is 1 on then 'ctrl' becomes 'probability'
 
 flags
 =====
@@ -21,3 +21,4 @@ velo => 0, velo => 64 does not come back as chord player.
 
 notify host on changes => mark proj as dirty (undo ?)
 
+should work without a connected Launchpad.

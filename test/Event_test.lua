@@ -23,6 +23,7 @@ function should.setDefaultsOnCreate()
     note     = 0,
     length   = 6,
     index    = {},
+    etype    = 'note',
   }, e)
 end
 
@@ -34,57 +35,55 @@ function should.computeTriggerTime()
   local t = 8    -- Current time
   local Gs = 0   -- Start delta
   local Gm = nil -- Override loop length
-  assertEqual(48, e:nextTrigger(t, Gs, Gm))
+  assertEqual(48, e:nextTrigger(t))
   t = 40
-  assertEqual(48, e:nextTrigger(t, Gs, Gm))
+  assertEqual(48, e:nextTrigger(t))
   t = 48
-  assertEqual(48, e:nextTrigger(t, Gs, Gm))
+  assertEqual(48, e:nextTrigger(t))
   assertEqual(96+48, e:nextTrigger(t, Gs, Gm, true))
   t = 49
-  assertEqual(96+48, e:nextTrigger(t, Gs, Gm))
+  assertEqual(96+48, e:nextTrigger(t))
   -- After second loop
   t = 96 + 49
-  assertEqual(96+96+48, e:nextTrigger(t, Gs, Gm))
+  assertEqual(96+96+48, e:nextTrigger(t))
 end
 
-function should.computeTriggerTimeWithStart()
+function should.computeTriggerTimeWithDelta()
   local e = binseq.Event {
     position = 48,
     loop = 96,
   }
+  local pat = binseq.Pattern()
+  e.pat = pat
+  pat.position = 10
   local t = 8     -- Current time
-  local Gs = 20   -- Start delta
-  local Gm = nil  -- Override loop length
-  assertEqual(28, e:nextTrigger(t, Gs, Gm))
-  t = 28
-  assertEqual(28, e:nextTrigger(t, Gs, Gm))
-  t = 48
-  assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
-  t = 49
-  assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
+  assertEqual(58, e:nextTrigger(t))
+  t = 58
+  assertEqual(58, e:nextTrigger(t))
+  t = 59
+  assertEqual(96+58, e:nextTrigger(t))
 end
 
 function should.computeTriggerTimeWithGlobalLoop()
   local e = binseq.Event {
     position = 48,
-    loop = 96,
+    loop = 128,
   }
+  local pat = binseq.Pattern()
+  e.pat = pat
+  pat.loop = 100
   local t = 8    -- Current time
-  local Gs = 20  -- Start delta
-  local Gm = 48  -- Override loop length
-  assertEqual(28, e:nextTrigger(t, Gs, Gm))
-  t = 28
-  assertEqual(28, e:nextTrigger(t, Gs, Gm))
-  t = 48+28
-  assertEqual(48+28, e:nextTrigger(t, Gs, Gm))
-  t = 48+29
-  assertEqual(96+28, e:nextTrigger(t, Gs, Gm))
+  assertEqual(48, e:nextTrigger(t))
+  t = 48
+  assertEqual(48, e:nextTrigger(t))
+  t = 100+28
+  assertEqual(148, e:nextTrigger(t))
 end
 
 function should.reSchedule(t)
   local aseq = {}
   function aseq:reSchedule(e)
-    self.e = e
+    self.test_e = e
   end
 
   local e = binseq.Event {
@@ -92,37 +91,39 @@ function should.reSchedule(t)
     mute = 0,
   }
   -- Need to be part of a pattern to be scheduled.
-  e.pat = {}
+  e.pat = binseq.Pattern()
 
   e:setSequencer(aseq)
-  assertEqual(e, aseq.e)
+  assertEqual(e, aseq.test_e)
 
-  aseq.e = nil
+  aseq.test_e = nil
   e:set {position = 12}
-  assertEqual(e, aseq.e)
+  assertEqual(e, aseq.test_e)
 
-  aseq.e = nil
+  aseq.test_e = nil
   e:set {loop = 24}
-  assertEqual(e, aseq.e)
+  assertEqual(e, aseq.test_e)
 
-  aseq.e = nil
+  aseq.test_e = nil
   e:set {note = 24}
-  assertNil(aseq.e)
+  assertNil(aseq.test_e)
 end
 
 function should.playOnOff()
   local e = binseq.Event()
+  e.note = 40
+  e.pat = binseq.Pattern()
   local l = 'NoteOn'
   for i=1,100 do
     local r = math.random(3)
     if r == 1 then
-      e:set({length = math.random(48)})
+      e:set({length = 1 + math.random(48)})
     elseif r == 2 then
-      e:set({loop = math.random(48)})
+      e:set({loop = 1 + math.random(48)})
     else
-      e:set({position = math.random(48)})
+      e:set({position = 1 + math.random(48)})
     end
-    e:nextTrigger(e.t or 0, 0, nil)
+    e:nextTrigger(e.t or 0)
     local a
     if e.t or l == 'NoteOff' then
       a = e:trigger()
@@ -144,9 +145,10 @@ function should.allowLengthSameAsLoop()
     position = 0,
     note = 60,
   }
+  e.pat = binseq.Pattern()
 
   -- NoteOn @ 0
-  e:nextTrigger(0, 0)
+  e:nextTrigger(0)
 
   assertEqual(0, e.t)
   assertEqual(nil, e.off_t)
@@ -154,14 +156,14 @@ function should.allowLengthSameAsLoop()
   assertEqual(24, e.off_t)
 
   -- NoteOff @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(24, e.t)
   assertEqual(24, e.off_t)
   e:trigger()
   assertEqual(nil, e.off_t)
 
   -- NoteOn @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(24, e.t)
   assertEqual(nil, e.off_t)
   e:trigger()
@@ -175,9 +177,10 @@ function should.allowLengthDifferentAsLoop()
     position = 0,
     note = 60,
   }
+  e.pat = binseq.Pattern()
 
   -- NoteOn @ 0
-  e:nextTrigger(0, 0)
+  e:nextTrigger(0)
 
   assertEqual(0, e.t)
   assertEqual(nil, e.off_t)
@@ -185,14 +188,14 @@ function should.allowLengthDifferentAsLoop()
   assertEqual(20, e.off_t)
 
   -- NoteOff @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(20, e.t)
   assertEqual(20, e.off_t)
   e:trigger()
   assertEqual(nil, e.off_t)
 
   -- NoteOn @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(24, e.t)
   assertEqual(nil, e.off_t)
   e:trigger()
@@ -202,21 +205,21 @@ function should.allowLengthDifferentAsLoop()
   e:set({length = 24})
 
   -- NoteOff @ 48
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(48, e.t)
   assertEqual(48, e.off_t)
   e:trigger()
   assertEqual(nil, e.off_t)
 
   -- NoteOn @ 48
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(48, e.t)
   assertEqual(nil, e.off_t)
   e:trigger()
   assertEqual(72, e.off_t)
 
   -- NoteOff @ 72
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(72, e.t)
   assertEqual(72, e.off_t)
   e:trigger()
@@ -224,7 +227,7 @@ function should.allowLengthDifferentAsLoop()
 
   -- NoteOn @ 72, Off 96, On 96, Off 120, On 120, etc.
   for _, value in ipairs {72, 96, 96, 120, 120} do
-    e:nextTrigger(e.t, 0, nil, true)
+    e:nextTrigger(e.t, true)
     assertEqual(value, e.t)
     e:trigger()
   end
@@ -237,9 +240,10 @@ function should.allowLengthLongerThenLoop()
     position = 0,
     note = 60,
   }
+  e.pat = binseq.Pattern()
 
   -- NoteOn @ 0
-  e:nextTrigger(0, 0)
+  e:nextTrigger(0)
 
   assertEqual(0, e.t)
   assertEqual(nil, e.off_t)
@@ -247,7 +251,7 @@ function should.allowLengthLongerThenLoop()
   assertEqual(96, e.off_t)
 
   -- NoteOff @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(24, e.t)
   -- Actual value for off_t does not matter during NoteOff
   assertEqual(96, e.off_t)
@@ -262,9 +266,11 @@ function should.allowNoteChangeInNoteOn()
     position = 0,
     note = 60,
   }
+  e.pat = binseq.Pattern()
+  e.pat.tuning = 0
 
   -- NoteOn @ 0
-  e:nextTrigger(0, 0)
+  e:nextTrigger(0)
 
   assertEqual(0, e.t)
   assertEqual(nil, e.off_t)
@@ -275,7 +281,7 @@ function should.allowNoteChangeInNoteOn()
   e:set {note = 72}
 
   -- NoteOff @ 24
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   assertEqual(24, e.t)
   -- Actual value for off_t does not matter during NoteOff
   assertEqual(96, e.off_t)
@@ -286,7 +292,7 @@ function should.allowNoteChangeInNoteOn()
   assertEqual(nil, e.off_t)
 
   -- New note
-  e:nextTrigger(e.t, 0, nil, true)
+  e:nextTrigger(e.t, true)
   local a, note = e:trigger()
   assertEqual(72, note)
   assertEqual(0x90, a)
@@ -338,6 +344,9 @@ function should.cycleThroughNotes()
     loop = 96,
     notes = {10,12,17,13, _len = 4},
   }
+  e.pat = binseq.Pattern()
+  e.pat.tuning = 0
+
   e:nextTrigger(0, 0, nil)
   local _, n = e:trigger()
   assertEqual(10, n)
@@ -380,6 +389,9 @@ function should.cycleThroughVelocities()
     loop = 96,
     velocities = {10,12,17,13, _len = 4},
   }
+  e.pat = binseq.Pattern()
+  e.pat.tuning = 0
+
   e:nextTrigger(0, 0, nil)
   local _, _, n = e:trigger()
   assertEqual(10, n)
@@ -422,6 +434,9 @@ function should.cycleThroughLengths()
     loop = 96,
     lengths = {10,12,17,13, _len = 4},
   }
+  e.pat = binseq.Pattern()
+  e.pat.tuning = 0
+
   e:nextTrigger(0, 0, nil)
   e:trigger()
   local n = e.off_t - e.t

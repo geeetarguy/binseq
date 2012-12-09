@@ -5,6 +5,8 @@
 
   A Pattern contains:
     * list of events
+    * global settings
+      => note (tuning), velocity, length, position, loop (truncate evt loop)
 
   The pattern responds to
     * enable (adds itself to the sequencer)
@@ -36,6 +38,10 @@ function lib.new(def)
     chord_changers = {},
     -- Tuning (set in global pseudo event)
     tuning = 12,
+    -- Move start positions
+    position = 0,
+    -- Restrict loop size (0 = no restriction)
+    loop   = 0,
   }
   -- Global settings that alter playback of all events
   private.makeGlobal(self)
@@ -141,7 +147,7 @@ end
 
 function lib:chord(t)
   local c = self.chords[self:chordIndex(t)]
-  if c.mute == 1 then
+  if not c or c.mute == 1 then
     -- Muted chord is not played
     return nil
   else
@@ -173,19 +179,37 @@ end
 
 function private.setGlobal(e, def)
   local self = e.pat
+  local need_schedule = false
   for key, value in pairs(def) do
     e[key] = value
     if key == 'note' then
       self.tuning = value
+    elseif key == 'loop' then
+      need_schedule = true
+      self.loop = value
+    elseif key == 'position' then
+      need_schedule = true
+      self.position = value
     end
   end
   -- Save
   self:save()
+  -- Reschedule events
+  if need_schedule then
+    local seq = self.seq
+    if seq then
+      for _, e in pairs(self.events) do
+        seq:reSchedule(e)
+      end
+    end
+  end
 end
 
 function private:copyInGlobal()
   local glo = self.global
-  glo.note = self.tuning
+  glo.note     = self.tuning
+  glo.loop     = self.loop
+  glo.position = self.position
 end
 
 function private:makeGlobal()

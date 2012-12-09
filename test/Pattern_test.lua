@@ -94,6 +94,7 @@ end
 function chordPattern()
   local db = binseq.PresetDb ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
+  pat.tuning = 0
   -- Chord notes
   local e1 = pat:getOrCreateEvent(1)
   local e2 = pat:getOrCreateEvent(2)
@@ -262,7 +263,7 @@ function should.useAsChord()
 
   for _, e in ipairs(partition.events.r) do
     -- t, Gs
-    e:nextTrigger(0, 0)
+    e:nextTrigger(0)
   end
 
   for t=0,500 do
@@ -272,7 +273,7 @@ function should.useAsChord()
       local notes = event.chord
       -- Ensure Rhythmic events are correct.
       assertEqual(t, e.t)
-      e:nextTrigger(t, 0, nil, true)
+      e:nextTrigger(t, true)
     end
   end
 end
@@ -284,7 +285,7 @@ function should.playChord()
 
   for _, e in ipairs(partition.events.r) do
     -- t, Gs
-    e:nextTrigger(0, 0)
+    e:nextTrigger(0)
     assertEqual('chord_player', e.etype)
   end
 
@@ -302,7 +303,7 @@ function should.playChord()
         assertEqual(chord[i], midi[i][2])
       end
       -- Prepare Note Off
-      e:nextTrigger(e.t, 0, nil, true)
+      e:nextTrigger(e.t, true)
       assertTrue(e.off_t)
       -- NoteOff
       local midi = e:trigger()
@@ -312,7 +313,7 @@ function should.playChord()
       end
       assertNil(e.off_t)
       -- Prepare next note
-      e:nextTrigger(e.t, 0, nil, true)
+      e:nextTrigger(e.t, true)
     end
   end
  
@@ -331,6 +332,52 @@ function should.savePatternTuning()
   assertEqual(4, p2.tuning)
 end
 
+function should.savePatternLoop()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local glo = pat.global
+  glo:set {
+    loop = 48,
+  }
+
+  local p2 = db:getPattern(6, song.id)
+  assertEqual(48, p2.loop)
+end
+
+function should.savePatternPosition()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local glo = pat.global
+  glo:set {
+    position = 10,
+  }
+
+  local p2 = db:getPattern(6, song.id)
+  assertEqual(10, p2.position)
+end
+
+function should.reScheduleEventsOnGlobal()
+  local db = binseq.PresetDb(':memory:')
+  local song = db:getOrCreateSong(5)
+  local pat  = song:getOrCreatePattern(6)
+  local e = pat:getOrCreateEvent(10)
+  local glo = pat.global
+  local aseq = binseq.Sequencer()
+  e.note = 40
+  pat:setSequencer(aseq)
+  function aseq:reSchedule(e)
+    aseq.test_e = e
+  end
+
+  assertNil(aseq.test_e)
+
+  glo:set {
+    position = 10,
+  }
+  assertEqual(e, aseq.test_e)
+end
 
 test.all()
 

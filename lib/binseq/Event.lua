@@ -69,8 +69,9 @@ end
 function lib:scheduledType()
   local et = self.etype
   --                   This is an error => mute event.
-  if self.mute == 1 or self.position >= self.loop or
-     et == 'chord' or et == 'chord_changer' then
+  if self.mute == 1 or
+     et == 'chord'  or
+     et == 'chord_changer' then
     return false
   else
     -- Schedule event
@@ -139,10 +140,20 @@ end
 -- |-------|---- tl -------|------------------ te --|      wrap around on next loop
 -- |-------|--- p -------|
 -- t = time in midi clock since start of song.
-function lib:nextTrigger(t, Gs, Gm, not_now)
-  -- FIXME If we are between NoteOn and NoteOff: trigger now (not for ChordChanger)
-  local m = Gm or self.loop
-  local p = self.position - Gs
+function lib:nextTrigger(t, not_now)
+  local Gs = 0
+  local Gm = 0
+  local pat = self.pat
+  if pat then
+    Gs = pat.position
+    Gm = pat.loop
+  end
+  -- TODO: If we are between NoteOn and NoteOff: trigger now ? (not for ChordChanger)
+
+  local m = self.loop
+  if Gm > 0 and m > Gm then
+    m = Gm
+  end
   -- off_t is off time (set during NoteOn trigger)
   local off_t = self.off_t
   if t == self.allow_now_t then
@@ -150,11 +161,7 @@ function lib:nextTrigger(t, Gs, Gm, not_now)
     self.allow_now_t = nil
   end
 
-  if p < 0 or p >= m then
-    -- Out of current loop region: ignore or trigger NoteOff
-    self.t = off_t
-    return off_t
-  end
+  local p = (self.position + Gs) % m
   
   local count = math.floor(t / m)
   -- tl = t % m

@@ -251,7 +251,9 @@ end
 function lib:setPattern(p)
   assert(p.id, 'Use createPattern to create new objects')
   p.data = yaml.dump {
-    tuning = p.tuning,
+    tuning   = p.tuning,
+    position = p.position,
+    loop     = p.loop,
   }
   local stmt = self.update_pattern
   stmt:bind_names(p)
@@ -748,7 +750,9 @@ function private:patternFromRow(row)
     song_id      = row[2],
     sequencer_id = row[3],
     posid        = row[4],
-    tuning       = data.tuning or 0,
+    tuning       = data.tuning   or 0,
+    position     = data.position or 0,
+    loop         = data.loop     or 0,
   }
   -- We only set db now so that 'set' does not save.
   p.db = self
@@ -803,11 +807,6 @@ function private:sequencerFromRow(row)
     song_id  = row[2],
     posid    = row[3],
     -- TODO data fields are copied 3 times (yaml.load, here, and in Sequecer:set).
-    note     = data.note,
-    velocity = data.velocity,
-    length   = data.length,
-    position = data.position,
-    loop     = data.loop,
     channel  = data.channel,
   }
   -- We only set db now so that 'set' does not save.

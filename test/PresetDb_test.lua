@@ -151,18 +151,17 @@ function should.updateSequencer()
   local db = binseq.PresetDb(':memory:')
   -- posid, song_id
   local s = db:getOrCreateSequencer(5, 3)
-  assertEqual(0, s.loop)
-  s.loop = 48
+  assertEqual(1, s.channel)
+  s.channel = 4
   s:save()
   s = db:getSequencer(5, 3)
-  assertEqual(48, s.loop)
+  assertEqual(4, s.channel)
 end
 
 function should.deleteSequencer()
   local db = binseq.PresetDb(':memory:')
   -- posid, song_id
   local p = db:getOrCreateSequencer(5, 3)
-  assertEqual(0, p.loop)
   p:delete()
   p = db:getSequencer(5)
   assertNil(p)
