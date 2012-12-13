@@ -332,14 +332,18 @@ function lib:selectNote(row, col)
 
   if self.copy == true then
     if e then
-      self.copy = e:dump()
+      local copy = e:dump()
       -- Mute new events
-      self.copy.data.mute = 1
+      copy.data.mute = 1
+      self.copy = yaml.dump(copy)
       self.pad:button(0, POS.COPY):setState('Green')
     end
   elseif self.copy then
     e = e or self.song.edit_pattern:getOrCreateEvent(posid)
-    e:copy(self.copy)
+    e:copy(yaml.load(self.copy))
+    -- Stop copy operation
+    self.copy = nil
+    self.pad:button(0, POS.COPY):setState('Off')
     self:editEvent(e, row, col)
   elseif type(self.del) == 'table' then
     if self.del == e then

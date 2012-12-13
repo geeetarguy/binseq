@@ -147,7 +147,7 @@ function lib:nextTrigger(t, not_now)
   local Gs = 0
   local Gm = 0
   local pat = self.pat
-  if pat then
+  if pat and self.etype ~= 'pat_changer' then
     Gs = pat.position
     Gm = pat.loop
   end

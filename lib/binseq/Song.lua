@@ -163,9 +163,9 @@ end
 
 --================================================== Used for testing
 local gridToPosid = binseq.Event.gridToPosid
-function lib.mock()
-  local db = binseq.PresetDb ':memory:'
-  local song = db:getOrCreateSong(1, 'hello')
+function lib.mock(db, posid)
+  local db = db or binseq.PresetDb ':memory:'
+  local song = db:getOrCreateSong(posid or 1, 'hello')
   for row = 1,6 do
     for col = 1,8 do
       song:getOrCreatePattern(gridToPosid(row, col, 0))

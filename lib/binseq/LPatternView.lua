@@ -64,6 +64,10 @@ function lib:display(key)
   -- TODO: Copy operation => copied object in LSeq and check type on display
   key = key or 'mixer'
   self.key = key
+  if key == 'pattern' then
+    self.copy = nil
+    self.del = nil
+  end
   local pad  = self.pad
   local song = self.song
   local curr = (song.edit_pattern or {}).posid
@@ -207,13 +211,16 @@ function private:pressGrid(row, col)
 
   if self.copy == true then
     if pat then
-      self.copy = pat:dump()
+      self.copy = yaml.dump(pat:dump())
       self.pad:button(0, POS.COPY):setState('Green')
     end
   elseif self.copy then
     pat = pat or song:getOrCreatePattern(posid)
     self.patterns[posid] = pat
-    pat:copy(self.copy)
+    pat:copy(yaml.load(self.copy))
+    -- Stop copy operation
+    self.copy = nil
+    self.pad:button(0, POS.COPY):setState('Off')
     private.showButtonState(self, pat)
   elseif type(self.del) == 'table' then
     if self.del == pat then

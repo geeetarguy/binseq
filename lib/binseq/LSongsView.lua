@@ -139,7 +139,7 @@ function private:pressGrid(row, col)
 
   if self.copy == true then
     if song then
-      self.copy = song:dump()
+      self.copy = yaml.dump(song:dump())
       self.pad:button(0, POS.COPY):setState('Green')
     end
   elseif self.copy then
@@ -148,7 +148,9 @@ function private:pressGrid(row, col)
     end
     song = db:getOrCreateSong(posid)
     self.songs[posid] = song
-    song:copy(self.copy)
+    song:copy(yaml.load(self.copy))
+    self.copy = nil
+    self.pad:button(0, POS.COPY):setState('Off')
     private.showButtonState(self, song)
   elseif type(self.del) == 'table' then
     if self.del == song then
