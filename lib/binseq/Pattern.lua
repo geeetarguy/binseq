@@ -233,7 +233,8 @@ end
 function lib:dump()
   local events = {}
   for posid, e in pairs(self.events) do
-    events[posid] = e:dump()
+    -- Cannot store number key in dump.
+    events[tostring(posid)] = e:dump()
   end
 
   return {
@@ -246,7 +247,7 @@ end
 function lib:copy(dump)
   self:set(dump.data)
   for posid, d in pairs(dump.events) do
-    local e = self:getOrCreateEvent(posid)
+    local e = self:getOrCreateEvent(tonumber(posid))
     e:copy(d)
   end
 end

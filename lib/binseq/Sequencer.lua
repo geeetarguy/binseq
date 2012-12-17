@@ -73,6 +73,29 @@ function lib:save()
   db:setSequencer(self)
 end
 
+function lib:dump()
+  local pat_on = {}
+  for posid, _ in pairs(self.patterns) do
+    table.insert(pat_on, posid)
+  end
+
+  return {
+    type   = self.type,
+    data   = {channel = self.channel},
+    pat_on = pat_on,
+  }
+end
+
+function lib:copy(dump)
+  local data = dump.data
+  self.channel = data.channel or 1
+  self:save()
+
+  for _, posid in ipairs(dump.pat_on) do
+    self:enablePattern(posid)
+  end
+end
+
 function lib:delete()
   local db = self.db
   assert(db, 'Cannot delete sequencer without database')
@@ -88,6 +111,7 @@ end
 function lib:disablePattern(posid)
   local pat = self.patterns[posid]
   if pat then
+    self.patterns[posid] = nil
     pat:setSequencer(nil)
   end
 end

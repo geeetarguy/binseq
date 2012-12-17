@@ -149,6 +149,9 @@ function private:pressGrid(row, col)
     song = db:getOrCreateSong(posid)
     self.songs[posid] = song
     song:copy(yaml.load(self.copy))
+    for _, seq in pairs(song.sequencers) do
+      seq.playback = self.lseq.playback
+    end
     self.copy = nil
     self.pad:button(0, POS.COPY):setState('Off')
     private.showButtonState(self, song)

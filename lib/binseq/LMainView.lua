@@ -120,9 +120,9 @@ local BITS = {
     1096,  -- 1, 2  whole notes
     48,  -- half note       o
     24,  -- quarter note    .
-    12,   -- eigth note
-    1003,   -- 32th note, 1 16th
-    1001,   -- 1 tuplet, 2 tuplet
+    12,  -- eigth note
+    6,   -- 16th
+    3,   -- 32th note
   },
   position = {
     -- Adding 1000 = triple mode: 0, 1, 2
@@ -131,9 +131,9 @@ local BITS = {
     1096,  -- 1, 2  whole notes
     48,  -- half note       o
     24,  -- quarter note    .
-    12,   -- eigth note
-    1003,   -- 32th note, 1 16th
-    1001,   -- 1 tuplet, 2 tuplet
+    12,  -- eigth note
+    6,   -- 16th
+    3,   -- 32th note
   },
   loop = {
     -- Adding 1000 = triple mode: 0, 1, 2
@@ -142,9 +142,9 @@ local BITS = {
     1096,  -- 1, 2  whole notes
     48,  -- half note       o
     24,  -- quarter note    .
-    12,   -- eigth note
-    1003,   -- 32th note, 1 16th
-    1001,   -- 1 tuplet, 2 tuplet
+    12,  -- eigth note
+    6,   -- 16th
+    3,   -- 32th note
   },
 }
 

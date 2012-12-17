@@ -9,8 +9,9 @@
 --]]------------------------------------------------------
 local lib = {type = 'binseq.Launchpad'}
 lib.__index      = lib
-binseq.Launchpad    = lib
+binseq.Launchpad = lib
 local private    = {}
+local TRY_RECONNECT_MS = 2000
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -27,9 +28,16 @@ function lib.new(port_name)
   }
 
   setmetatable(self, lib)
-  if self:connect(port_name) then
-    return self
+  if not self:connect(port_name) then
+    self.last_c = now()
+    self.send = private.sendNotConnected
+    -- mock out
+    self.out = {
+      send = function() end
+    }
   end
+
+  return self
 end
 
 
@@ -163,3 +171,15 @@ end
 function lib:send(a, b, c)
   self.out:send(a, b, c + self.copy_bit)
 end
+
+function private:sendNotConnected()
+  local n = now()
+  if n > self.last_c + TRY_RECONNECT_MS then
+    self.last_c = n
+    if self:connect() then
+      self.send = lib.send
+      self:clear()
+    end
+  end
+end
+

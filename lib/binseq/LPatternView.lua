@@ -154,7 +154,7 @@ function lib:enablePattern(pat, row, col)
     end
   end
   if seq then
-    pat:setSequencer(seq)
+    seq:enablePattern(pat.posid)
   end
 
   if self.lseq.view == self then
@@ -168,7 +168,11 @@ function lib:disablePattern(pat, row, col)
   if not row then
     row, col = posidToGrid(pat.posid, 0)
   end
-  pat:setSequencer(nil)
+
+  local aseq = pat.seq
+  if aseq then
+    aseq:disablePattern(pat.posid)
+  end
 
   if self.lseq.view == self then
     private.showButtonState(self, pat, row, col)

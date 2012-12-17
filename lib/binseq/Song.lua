@@ -39,6 +39,11 @@ function lib.new(def_or_db_path, song_id, name)
   -- Find pattern by posid
   self.patterns = {}
 
+  -- Events used to record midi messages values.
+  self.record_list = setmetatable({}, {__mode = 'v'}) -- Weak values
+  self.record_idx = 0
+  self.record_keys = {}
+
   -- Find sequencers by posid
   self.sequencers = {}
   -- Sequencers list
@@ -115,23 +120,40 @@ end
 function lib:dump()
   local patterns = {}
   for posid, pat in pairs(self.patterns) do
-    patterns[posid] = pat:dump()
+    -- We must avoid integer keys in dump or they will be seen as a list
+    -- instead of a Hash.
+    patterns[tostring(posid)] = pat:dump()
   end
 
-  return {
+  local sequencers = {}
+  for i, s in pairs(self.sequencers) do
+    sequencers[tostring(i)] = s:dump()
+  end
+
+  local r = {
     type   = self.type,
     data   = {
       name = self.name,
     },
-    patterns = patterns,
+    patterns   = patterns,
+    sequencers = sequencers,
   }
+  log('====================')
+  log(yaml.dump(r))
+  log('====================')
+  return r
 end
 
 function lib:copy(dump)
   self:set(dump.data)
   for posid, d in pairs(dump.patterns) do
-    local pat = self:getOrCreatePattern(posid)
+    local pat = self:getOrCreatePattern(tonumber(posid))
     pat:copy(d)
+  end
+
+  for posid, d in pairs(dump.sequencers) do
+    local seq = self:getOrCreateSequencer(tonumber(posid))
+    seq:copy(d)
   end
 end
 
@@ -158,6 +180,52 @@ end
 function lib:allOff()
   for _, s in pairs(self.sequencers) do
     s:allOff()
+  end
+end
+
+-- Record some attributes from the current message in the selected messages for
+-- recording.
+function lib:record(t, msg)
+  if msg.type == 'NoteOn' then
+    local list = self.record_list
+    local sz = #list
+    if sz > 0 then
+      local idx = 1 + (self.record_idx % sz)
+      local e = list[idx]
+      if e then
+        local def = {}
+        for k, _ in pairs(self.record_keys) do
+          if k == 'note' then
+            def[k] = msg.note
+          elseif k == 'velocity' then
+            def[k] = msg.velocity
+          elseif k == 'position' and e.loop > 0 then
+            local Gm = e.pat.loop
+            local m = e.loop
+            if Gm > 0 and m > Gm then
+              m = Gm
+            end
+            def[k] = t % m
+          end
+        end
+        e:set(def)
+      end
+    end
+  end
+end
+
+function lib:enableRecord(e)
+  disableRecord(e)
+  table.insert(self.record_list, e)
+end
+
+function lib:disableRecord(e)
+  local list = self.record_list
+  for i, le in ipairs(list) do
+    if le == e then
+      table.remove(list, i)
+      break
+    end
   end
 end
 

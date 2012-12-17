@@ -207,8 +207,8 @@ end
 -- This is called when we are running without a scheduler.
 function lib:pull()
   local pad, midiin = self.pad, self.midiin
-  if pad    then pad.lin:pull() end
-  if midiin then midiin:pull()  end
+  if pad.lin then pad.lin:pull() end
+  if midiin  then midiin:pull()  end
 end
 
 function lib:backup()
@@ -235,7 +235,7 @@ function lib:restore(data)
   if globals.song then
     self:loadSong(globals.song)
     if globals.pattern then
-      song.edit_pattern = song:getOrCreatePattern(globals.pattern)
+      self.song.edit_pattern = self.song:getOrCreatePattern(globals.pattern)
     end
   end
   self:loadView(globals.view or 'Home', globals.key)
@@ -338,7 +338,7 @@ function lib:connect()
               self:reScheduleAll(t)
             end
           else
-            --self:record(msg)
+            --self:record(t, msg)
           end
         end
 
@@ -364,6 +364,14 @@ function lib:connect()
   
   return self.connected
 end
+
+function lib:record(t, msg)
+  local song = self.song
+  if song then
+    song:record(t, msg)
+  end
+end
+
 --=============================================== TOP BUTTONS
 -- Select song
 top_button[POS.SONG] = function(self, row, col)

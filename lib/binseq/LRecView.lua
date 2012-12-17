@@ -154,12 +154,13 @@ top_button[8] = private.loadMain
 
 -- Last column buttons
 function private:batchButton(row, col)
+  local song = self.song
   local key = PARAMS[row]
   if self.keys[key] then
-    self.keys[key] = nil
+    song.record_keys[key] = nil
     self.pad:button(row, col):setState('Off')
   else
-    self.keys[key] = true
+    song.record_keys[key] = true
     self.pad:button(row, col):setState('Red')
   end
 end
