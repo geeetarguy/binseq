@@ -4,7 +4,7 @@
   -----------
 
   A song contains
-    * 64 patterns
+    * 64 patterns (or more with pagination)
     * 1 to 8 sequencers
 
   The song responds to
@@ -138,9 +138,6 @@ function lib:dump()
     patterns   = patterns,
     sequencers = sequencers,
   }
-  log('====================')
-  log(yaml.dump(r))
-  log('====================')
   return r
 end
 

@@ -60,7 +60,7 @@ function lib.new(lseq, song)
 end
 
 -- Display view content (called on load)
-function lib:display(key)
+function lib:display(key, opt)
   -- TODO: Copy operation => copied object in LSeq and check type on display
   key = key or 'mixer'
   self.key = key
@@ -73,13 +73,32 @@ function lib:display(key)
   local curr = (song.edit_pattern or {}).posid
   local page = self.page
 
+  if opt == 'extra' then
+    -- extra adds 8 channels and 64 patterns.
+    self.extra = not self.extra
+  end
+
+  if self.extra then
+    self.offset = 8
+  else
+    self.offset = 0
+  end
+
   for col=1,8 do
     if key == 'pattern' then
-      if song.sequencers[col] then
-        pad:button(0, col):setState('Green')
+      if song.sequencers[col + self.offset] then
+        if self.extra then
+          pad:button(0, col):setState('Red')
+        else
+          pad:button(0, col):setState('Green')
+        end
+      elseif col == POS.EXTRA and self.extra then
+        pad:button(0, col):setState('Amber')
       else
         pad:button(0, col):setState('Off')
       end
+    elseif col == POS.EXTRA and self.extra then
+      pad:button(0, col):setState('Amber')
     elseif col == POS.COPY then
       private.showCopyDel(self, col)
     elseif col == POS.TOGGLE then
@@ -143,11 +162,11 @@ function lib:enablePattern(pat, row, col)
   local song = pat.song
   local row, col
   if not row then
-    row, col = posidToGrid(pat.posid, 0)
+    row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
   end
 
   local seq
-  for i=col,1,-1 do
+  for i=col+self.offset,1,-1 do
     seq = song.sequencers[i]
     if seq then
       break
@@ -166,7 +185,7 @@ end
 function lib:disablePattern(pat, row, col)
   local row, col = row, col
   if not row then
-    row, col = posidToGrid(pat.posid, 0)
+    row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
   end
 
   local aseq = pat.seq
@@ -209,7 +228,7 @@ end
 function private:pressGrid(row, col)
   local pad = self.pad
   local song = self.song
-  local posid = gridToPosid(row, col, self.page)
+  local posid = gridToPosid(row, col, self.page, 8, 16, self.offset)
   local pat = self.patterns[posid]
                      
 
@@ -266,22 +285,27 @@ function private:pressGrid(row, col)
 end
 
 function private:sequencerPress(row, col)
+  local chan = self.offset + col
   local song = self.song
-  local aseq = song.sequencers[col]
+  local aseq = song.sequencers[chan]
   if aseq then
     -- remove
     aseq:delete()
-    song.sequencers[col] = nil
+    song.sequencers[chan] = nil
     for posid, pat in pairs(aseq.patterns) do
       -- Change sequencer
       self:enablePattern(pat)
     end
 
-    self.pad:button(0, col):setState('Off')
+    if col == POS.EXTRA and self.extra then
+      self.pad:button(0, col):setState('Amber')
+    else
+      self.pad:button(0, col):setState('Off')
+    end
   else
-    local aseq = song:getOrCreateSequencer(col)
+    local aseq = song:getOrCreateSequencer(chan)
     aseq:set {
-      channel = col
+      channel = chan
     }
     aseq.playback = self.lseq.playback
 
@@ -290,17 +314,21 @@ function private:sequencerPress(row, col)
         self:enablePattern(pat)
       end
     end
-    self.pad:button(0, col):setState('Green')
+
+    if self.extra then
+      self.pad:button(0, col):setState('Red')
+    else
+      self.pad:button(0, col):setState('Green')
+    end
   end
 end
 
 function private:showButtonState(pat, row, col, e)
   if not row then
-    row, col = posidToGrid(pat.posid, self.page)
-    if not row then
-      return
-    end
+    row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
   end
+  log(string.format('(%i, %i) %i', row, col, pat.posid))
+  if not row or col > 8 or col < 1 or row > 8 then return end
   local b
   if self.copy or self.del then
     b = 2
@@ -319,13 +347,16 @@ end
 
 
 function private:showGrid()
-  local page  = self.page
-  local parts = self.patterns
-  local pad   = self.pad
+  local parts  = self.patterns
+  local pad    = self.pad
+  -- next 16 channels (right to current 64 elements)
+  local offset = self.offset
+  -- bellow current 2x64 elements
+  local page   = self.page
 
   for row=1,8 do
     for col=1,8 do
-      local posid = gridToPosid(row, col, page)
+      local posid = gridToPosid(row, col, page, 8, 16, offset)
       local pat = parts[posid]
       if pat then
         private.showButtonState(self, pat, row, col)

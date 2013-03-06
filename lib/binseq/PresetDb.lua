@@ -54,7 +54,8 @@ function lib:backup()
 end
 
 function lib:restore(data)
-  return self.db:restore(data)
+  self.db:restore(data)
+  private.migrate(self)
 end
 --==========================================================  GLOBAL
 
@@ -547,6 +548,28 @@ lib.MIGRATIONS = {
       CREATE TABLE global (id INTEGER PRIMARY KEY, data TEXT);
       INSERT INTO global VALUES (null, "{}");
    ]]},
+  {name = '16chan', 
+   fun  = function(self)
+     local gridToPosid   = binseq.Event.gridToPosid 
+     local posidToGrid   = binseq.Event.posidToGrid
+
+     local stmt = self.db:prepare "SELECT * FROM patterns;"
+     local updt = self.db:prepare "UPDATE patterns SET posid = :posid WHERE id = :id;"
+
+     for r in stmt:rows() do
+       local pat = private.patternFromRow(self, r)
+       local row, col = posidToGrid(pat.posid, 0, 8, 8)
+       local posid = gridToPosid(row, col, 0, 8, 16)
+       updt:bind_names {
+         id    = pat.id,
+         posid = posid,
+       }
+       updt:step()
+       updt:reset()
+     end
+     stmt:reset()
+   end,
+  },
 }
 
 -- Prepare the database for events
@@ -567,7 +590,6 @@ function private:prepareDb(is_new)
   self.update_schema_info = db:prepare [[
     UPDATE schema_info SET data = :data WHERE id = 1;
   ]]
-  self.schema_info = private.getOrCreateSchemaInfo(self)
 
   private.migrate(self)
   
@@ -619,6 +641,10 @@ function private:prepareDb(is_new)
 
   self.read_patterns_by_song_id = db:prepare [[
     SELECT * FROM patterns WHERE song_id = :song_id;
+  ]]
+
+  self.all_patterns = db:prepare [[
+    SELECT * FROM patterns;
   ]]
 
   ------------------------------------------------------------  UPDATE
@@ -806,13 +832,19 @@ function private:saveSchemaInfo()
 end
 
 function private:migrate()
-  local schema_info = self.schema_info
+  local schema_info = private.getOrCreateSchemaInfo(self)
+  self.schema_info = schema_info
+
   local done = {}
   local db = self.db
   db:exec 'BEGIN'
   for _, m in ipairs(lib.MIGRATIONS) do
     if not schema_info[m.name] then
-      db:exec(m.sql)
+      if m.sql then
+        db:exec(m.sql)
+      elseif m.fun then
+        m.fun(self)
+      end
       done[m.name] = true
     end
   end

@@ -86,7 +86,13 @@ function lib:press(row, col)
   if row == 0 then
     f = top_button[col]
   elseif col == 9 then
-    -- pass to LSeq
+    if row == POS.EXPORT then
+      f = private.export
+    elseif row == POS.IMPORT then
+      f = private.import
+    else
+      -- pass to LSeq
+    end
   else
     -- press on grid
     f = private.pressGrid
@@ -195,4 +201,30 @@ function private:loadSongs()
     list[s.posid] = s
   end
   return list
+end
+
+local BASE_PATH = '/Road64_song.yml'
+
+function private:export(row, col)
+  -- Export current song
+  if type(self.copy) == 'string' then
+    local filepath = os.getenv('HOME')..BASE_PATH
+    local f = io.open(filepath, 'wb')
+    if f then
+      local s = f:write(self.copy)
+      f:close()
+    end
+    self.copy = nil
+    private.showCopyDel(self, POS.COPY)
+  end
+end
+
+function private:import(row, col)
+  -- Copy song
+  local filepath = os.getenv('HOME')..BASE_PATH
+  local f = io.open(filepath, 'rb')
+  if f then
+    self.copy = f:read('*a')
+    private.showCopyDel(self, POS.COPY)
+  end
 end

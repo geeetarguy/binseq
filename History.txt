@@ -1,0 +1,9 @@
+== 1.0.0
+
+* Major changes
+ * Initial version
+ * Added support for 16 channels (two grids with extra btn)
+ * Added song export/import with lower right buttons in song view
+
+* Minor changes
+

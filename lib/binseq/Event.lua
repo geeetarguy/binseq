@@ -330,22 +330,24 @@ function lib.posidToRow(posid, page)
 end
 
 -- Return the row and column from posid (1 based)
-function lib.posidToGrid(posid, page, rows_per_page)
+function lib.posidToGrid(posid, page, rows_per_page, cols_per_row, offset)
+  local cols_per_row  = cols_per_row  or 8
   local posid = posid - 1
   local rows_per_page = rows_per_page or 8
-  local col = posid % 8
-  local row = math.floor(posid / 8) - page * rows_per_page
+  local col = posid % cols_per_row
+  local row = math.floor(posid / cols_per_row) - page * rows_per_page
   if row >= 0 and row < rows_per_page then
-    return row + 1, col + 1
+    return row + 1, col + 1 - (offset or 0)
   else
     return nil
   end
 end
 
 -- Return the posid from (1 based) row and column.
-function lib.gridToPosid(row, col, page, rows_per_page)
+function lib.gridToPosid(row, col, page, rows_per_page, cols_per_row, offset)
+  local cols_per_row  = cols_per_row  or 8
   local rows_per_page = rows_per_page or 3
-  return (page*rows_per_page + row - 1)*8 + col
+  return (page*rows_per_page + row - 1) * cols_per_row + col + (offset or 0)
 end
 
 function lib:save()
@@ -397,9 +399,7 @@ function private:computeType()
     --=============================================== Chord
     if self.etype ~= 'chord' then
       -- add in pattern chords
-      local list = pat.chords
-      list._len = list._len + 1
-      table.insert(list, self)
+      pat:addChord(self)
       self.etype = 'chord'
     end
     -- Do not schedule
@@ -407,14 +407,7 @@ function private:computeType()
   else
     if self.etype == 'chord' then
       -- remove from pattern chords
-      local list = pat.chords
-      for i, e in ipairs(list) do
-        if e == self then
-          list._len = list._len - 1
-          table.remove(list, i)
-          break
-        end
-      end
+      pat:removeChord(self)
     end
 
     local remove_from_changers = self.etype == 'chord_changer'
@@ -443,13 +436,7 @@ function private:computeType()
     end
 
     if remove_from_changers then
-      local list = pat.chord_changers
-      for i, e in ipairs(list) do
-        if e == self then
-          table.remove(list, i)
-          break
-        end
-      end
+      pat:removeFromChangers(self)
     end
 
     return self:scheduledType()

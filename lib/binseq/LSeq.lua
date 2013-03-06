@@ -255,8 +255,11 @@ function lib:connect()
       if self.out_name then
         self.midiout = midi.Out(self.out_name)
       else
+        -- Strangely Ableton Fuck does not like 'Bus 1' and just ignores midi
+        -- data (blink yellow, not midi in). I hate these guys. The problem is
+        -- there since 2009 !
         self.midiout = midi.Out()
-        self.midiout:virtualPort('LSeq')
+        self.midiout:virtualPort('Road64')
       end
     end)
     if ok then

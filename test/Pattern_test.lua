@@ -53,6 +53,7 @@ function should.removeEventFromChordChangers()
     loop  = 0,
   }
   assertEqual(1, pat.chords._len)
+  assertEqual(e, pat.chords[1])
   e:set {
     loop  = 48,
   }
@@ -420,7 +421,7 @@ function should.dumpPattern()
     loop = 4,
   }, p.data)
   assertValueEqual({
-    [10] = {
+    ['10'] = {
       type = 'binseq.Event',
       data = {
         note = 11,

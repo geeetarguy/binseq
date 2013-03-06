@@ -46,7 +46,12 @@ local POS = {
   -- column buttons
   SEQ  = 1,
   MAIN = 2,
+
+  -- in Song view
+  EXPORT = 7,
+  IMPORT = 8,
 }
+
 local PLURALIZE = {
   note     = 'notes',
   velocity = 'velocities',

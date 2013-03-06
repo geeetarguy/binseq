@@ -188,7 +188,27 @@ function lib:delete()
 end
 
 function lib:removeEvent(e)
+  if e.etype == 'chord_changer' then
+    self:removeFromChangers(e)
+  end
   self.events[e.posid] = nil
+end
+
+function lib:addChord(e)
+  local list = self.chords
+  lk.insertSorted(list, e, 'posid')
+  list._len = list._len + 1
+end
+
+function lib:removeChord(e)
+  local list = self.chords
+  for i, el in ipairs(list) do
+    if e == el then
+      list._len = list._len - 1
+      table.remove(list, i)
+      break
+    end
+  end
 end
 
 function private.setGlobal(e, def)
@@ -249,6 +269,16 @@ function lib:copy(dump)
   for posid, d in pairs(dump.events) do
     local e = self:getOrCreateEvent(tonumber(posid))
     e:copy(d)
+  end
+end
+
+function lib:removeFromChangers(event)
+  local list = self.chord_changers
+  for i, e in ipairs(list) do
+    if e == event then
+      table.remove(list, i)
+      break
+    end
   end
 end
 
