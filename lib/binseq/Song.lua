@@ -18,6 +18,8 @@ local lib = {type = 'binseq.Song'}
 lib.__index      = lib
 binseq.Song    = lib
 local private    = {}
+local posidToGrid = binseq.Event.posidToGrid
+local MAX_SEQ_COUNT = 16
 
 --=============================================== PUBLIC
 setmetatable(lib, {
@@ -39,15 +41,16 @@ function lib.new(def_or_db_path, song_id, name)
   -- Find pattern by posid
   self.patterns = {}
 
+  -- Find sequencer by column
+  self.seq_by_col = {}
+
   -- Events used to record midi messages values.
   self.record_list = setmetatable({}, {__mode = 'v'}) -- Weak values
   self.record_idx = 0
   self.record_keys = {}
 
-  -- Find sequencers by posid
+  -- Find sequencers by posid (same as column)
   self.sequencers = {}
-  -- Sequencers list
-  self.sequencers_list = {}
 
   setmetatable(self, lib)
 
@@ -63,14 +66,13 @@ function lib.new(def_or_db_path, song_id, name)
 
     -- load sequencers
     local sequencers = self.sequencers
-    local list = self.sequencers_list
 
     for s in self.db:getSequencers(self.id) do
       sequencers[s.posid] = s
       s.song = self
       s:loadPatterns()
-      table.insert(list, s)
     end
+    private.buildSeqByColumn(self)
   end
 
   return self
@@ -83,7 +85,7 @@ function lib:getOrCreateSequencer(posid)
     s.song = self
     s:loadPatterns()
     self.sequencers[posid] = s
-    table.insert(self.sequencers_list, s)
+    private.buildSeqByColumn(self)
   end
   return s
 end
@@ -231,9 +233,41 @@ function lib:disableRecord(e)
   end
 end
 
+-- Return sequencer from pattern posid. Uses a default of 16 channels.
+function lib:sequencerForPosid(posid, cols_per_row)
+  cols_per_row = cols_per_row or MAX_SEQ_COUNT
+  local _, col = posidToGrid(posid, 0, 8, cols_per_row)
+  return self.seq_by_col[col]
+end
+
+function lib:enablePattern(pat)
+  local seq = self:sequencerForPosid(pat.posid)
+  if seq then
+    seq:enablePattern(pat.posid)
+  end
+end
+
+function lib:disablePattern(pat)
+  local seq = pat.seq
+  if seq then
+    seq:disablePattern(pat.posid)
+  end
+end
+
+
 -- Presets are activation settings for patterns. They contain posid => pattern.id.
 function private:setPresets(presets)
   self.presets = presets
+end
+
+function private:buildSeqByColumn()
+  local list = self.seq_by_col
+  local seqs = self.sequencers
+  local seq  = seqs[1]
+  for i=1,MAX_SEQ_COUNT do
+    seq = seqs[i] or seq
+    list[i] = seq
+  end
 end
 
 --================================================== Used for testing

@@ -19,8 +19,8 @@ end
 function should.loadSequencers()
   local db = mock().db
   local song = db:getSong(1)
-  local s1 = song.sequencers_list[1]
-  local s2 = song.sequencers_list[2]
+  local s1 = song.sequencers[1]
+  local s2 = song.sequencers[3]
   assertEqual('binseq.Sequencer', s1.type)
   assertEqual('binseq.Sequencer', s2.type)
 end

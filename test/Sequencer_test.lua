@@ -16,7 +16,7 @@ end
 
 function should.prepareListOnLoad()
   local song = mock()
-  local s = song.sequencers_list[1]
+  local s = song.sequencers[1]
 
   local i = 0
   local e = s.list.next

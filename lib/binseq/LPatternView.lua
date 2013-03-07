@@ -159,41 +159,25 @@ end
 
 -- Called on next pattern trigger.
 function lib:enablePattern(pat, row, col)
-  local song = pat.song
-  local row, col
-  if not row then
-    row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
-  end
-
-  local seq
-  for i=col+self.offset,1,-1 do
-    seq = song.sequencers[i]
-    if seq then
-      break
-    end
-  end
-  if seq then
-    seq:enablePattern(pat.posid)
-  end
+  pat.song:enablePattern(pat)
 
   if self.lseq.view == self then
+    if not row then
+      row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
+    end
     private.showButtonState(self, pat, row, col)
   end
 end
 
 -- Called on next pattern trigger.
 function lib:disablePattern(pat, row, col)
-  local row, col = row, col
-  if not row then
-    row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
-  end
-
-  local aseq = pat.seq
-  if aseq then
-    aseq:disablePattern(pat.posid)
-  end
+  pat.song:disablePattern(pat)
 
   if self.lseq.view == self then
+    if not row then
+      row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
+    end
+
     private.showButtonState(self, pat, row, col)
   end
 end
