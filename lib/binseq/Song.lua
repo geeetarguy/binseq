@@ -254,6 +254,23 @@ function lib:disablePattern(pat)
   end
 end
 
+-- Activate current preset in given song.
+function lib:activatePreset(preset)
+  local patterns = preset.patterns
+
+  for posid, pat in pairs(self.patterns) do
+    if patterns[posid] == pat.id then
+      -- Should be active
+      if not pat.seq then
+        -- activate
+        self:enablePattern(pat)
+      end
+    elseif pat.seq then
+      -- deactivate
+      self:disablePattern(pat)
+    end
+  end
+end
 
 -- Presets are activation settings for patterns. They contain posid => pattern.id.
 function private:setPresets(presets)
@@ -275,6 +292,9 @@ local gridToPosid = binseq.Event.gridToPosid
 function lib.mock(db, posid)
   local db = db or binseq.Database ':memory:'
   local song = db:getOrCreateSong(posid or 1, 'hello')
+  -- Just to make sure we do not have posid == id.
+  local tmp  = song:getOrCreatePattern(333)
+
   for row = 1,6 do
     for col = 1,8 do
       song:getOrCreatePattern(gridToPosid(row, col, 0))
@@ -300,9 +320,11 @@ function lib.mock(db, posid)
   for _, col in ipairs {1, 3} do
     local seq = song:getOrCreateSequencer(gridToPosid(1, col, 0))
     -- activate some patterns
-    seq:enablePattern(gridToPosid(1, col, 0))
-    seq:enablePattern(gridToPosid(2, col+1, 0))
+    seq:enablePattern(gridToPosid(1, col, 0, 16))
+    seq:enablePattern(gridToPosid(2, col+1, 0, 16))
   end
+
+  tmp:delete()
   -- Return a fresh copy like if it was queried from db
   return db:getSong(song.id)
 end

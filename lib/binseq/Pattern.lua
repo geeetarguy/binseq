@@ -176,8 +176,11 @@ function lib:delete()
   assert(db, 'Cannot delete pattern without database')
   self:setSequencer(nil)
   local song = self.song
-  if song and song.edit_pattern == self then
-    song.edit_pattern = nil
+  if song then
+    if song.edit_pattern == self then
+      song.edit_pattern = nil
+    end
+    song.patterns[self.posid] = nil
   end
 
   db:deletePattern(self)
