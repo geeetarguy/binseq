@@ -41,7 +41,7 @@ function lib.new(db_path, out_name, in_name, pad_name)
     seq_bits = {},
     selected_id  = 1,
     selected_seq = nil,
-    db = binseq.PresetDb(db_path),
+    db = binseq.Database(db_path),
   }
 
   setmetatable(self, lib)

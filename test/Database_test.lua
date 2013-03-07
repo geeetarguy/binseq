@@ -1,30 +1,30 @@
 --[[------------------------------------------------------
 
-  test binseq.PresetDb
+  test binseq.Database
   -----------------
 
 --]]------------------------------------------------------
 require 'lubyk'
 
-local should = test.Suite('binseq.PresetDb')
+local should = test.Suite('binseq.Database')
 local helper = {}
 
 local gridToPosid = binseq.Event.gridToPosid
 
 function should.autoLoad()
-  local e = binseq.PresetDb
+  local e = binseq.Database
   assertType('table', e)
 end
 
 function should.openInMemory()
   assertPass(function()
-    local db = binseq.PresetDb(':memory:')
+    local db = binseq.Database(':memory:')
   end)
 end
 
 --===================================== Song
 function should.getOrCreateSong()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local p = db:getOrCreateSong(5, 'foobar')
   assertEqual('binseq.Song', p.type)
@@ -36,7 +36,7 @@ function should.getOrCreateSong()
 end
 
 function should.getSong()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local p1 = db:getOrCreateSong(5, 'fool')
   local p2 = db:getSong(5)
   assertEqual(p1.id, p2.id)
@@ -46,7 +46,7 @@ function should.getSong()
 end
 
 function should.getSongs()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local s1 = db:getOrCreateSong(35, 'bar')
   local s2 = db:getOrCreateSong(5, 'foo')
   local res = {}
@@ -61,7 +61,7 @@ function should.getSongs()
 end
 
 function should.updateSong()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local p = db:getOrCreateSong(5, 'bar')
   assertEqual('bar', p.name)
   p.name = 'foo'
@@ -71,7 +71,7 @@ function should.updateSong()
 end
 
 function should.deleteSong()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local p = db:getOrCreateSong(5)
   p:delete()
   p = db:getSong(5)
@@ -79,7 +79,7 @@ function should.deleteSong()
 end
 
 function should.deleteAllPatternsAndEvents()
-  local db   = binseq.PresetDb(':memory:')
+  local db   = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local pat2 = song:getOrCreatePattern(7)
@@ -99,7 +99,7 @@ end
 
 --===================================== Sequencers
 function should.createSequencer()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local p = db:getOrCreateSequencer(5, 1)
   assertEqual('binseq.Sequencer', p.type)
@@ -110,7 +110,7 @@ function should.createSequencer()
 end
 
 function should.getSequencer()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local p1 = db:getOrCreateSequencer(5, 1)
   local p2 = db:getOrCreateSequencer(5, 1)
@@ -120,7 +120,7 @@ function should.getSequencer()
 end
 
 function should.getSequencers()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local s1 = db:getOrCreateSequencer(3, 1)
   local s2 = db:getOrCreateSequencer(5, 1)
@@ -136,7 +136,7 @@ function should.getSequencers()
 end
 
 function should.saveSequencerId()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local s = db:getOrCreateSequencer(5, 1)
   local p = db:getOrCreatePattern(3, s.id)
@@ -148,7 +148,7 @@ function should.saveSequencerId()
 end
 
 function should.updateSequencer()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local s = db:getOrCreateSequencer(5, 3)
   assertEqual(1, s.channel)
@@ -159,7 +159,7 @@ function should.updateSequencer()
 end
 
 function should.deleteSequencer()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local p = db:getOrCreateSequencer(5, 3)
   p:delete()
@@ -169,7 +169,7 @@ end
 
 --===================================== Patterns
 function should.getOrCreatePattern()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local p = db:getOrCreatePattern(5, 1)
   assertEqual('binseq.Pattern', p.type)
@@ -184,7 +184,7 @@ function should.getOrCreatePattern()
 end
 
 function should.getPattern()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local p1 = db:getOrCreatePattern(5, 1)
   local p2 = db:getPattern(5, 1)
@@ -214,7 +214,7 @@ function should.loadAllEventsOngetPattern()
 end
 
 function should.updatePattern()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local p = db:getOrCreatePattern(5, 1)
   assertEqual(1, p.song_id)
@@ -225,7 +225,7 @@ function should.updatePattern()
 end
 
 function should.deletePattern()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- posid, song_id
   local p = db:getOrCreatePattern(5, 1)
   local e = p:getOrCreateEvent(3)
@@ -239,7 +239,7 @@ end
 
 --===================================== Event
 function should.getOrCreateEvent()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local e = db:getOrCreateEvent(5, 17)
   assertEqual('binseq.Event', e.type)
@@ -252,7 +252,7 @@ function should.getOrCreateEvent()
 end
 
 function should.getEvent()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page, pattern_id
   local p1 = db:getOrCreateEvent(5, 17)
   local p2 = db:getEvent(5, 17)
@@ -262,7 +262,7 @@ function should.getEvent()
 end
 
 function should.updateEvent()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local p = db:getOrCreateEvent(5, 17)
   assertEqual(24, p.loop)
@@ -273,7 +273,7 @@ function should.updateEvent()
 end
 
 function should.storeMute()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page, pattern_id
   local p1 = db:getOrCreateEvent(5, 17)
   -- auto save
@@ -284,7 +284,7 @@ function should.storeMute()
 end
 
 function should.storeCtrl()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page, pattern_id
   local p1 = db:getOrCreateEvent(5, 17)
   assertNil(p1.ctrl)
@@ -296,7 +296,7 @@ function should.storeCtrl()
 end
 
 function should.savePatternTuning()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   pat.note = 23
@@ -307,7 +307,7 @@ function should.savePatternTuning()
 end
 
 function should.deleteEvent()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   -- row, col, page
   local e = db:getOrCreateEvent(5, 17)
   e:delete()
@@ -316,7 +316,7 @@ function should.deleteEvent()
 end
 
 function should.saveAndRestoreGlobal()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   assertValueEqual({}, db:getGlobals())
   db:setGlobals {
     foo = 'bar',

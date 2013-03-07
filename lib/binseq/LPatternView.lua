@@ -327,7 +327,6 @@ function private:showButtonState(pat, row, col, e)
   if not row then
     row, col = posidToGrid(pat.posid, self.page, 8, 16, self.offset)
   end
-  log(string.format('(%i, %i) %i', row, col, pat.posid))
   if not row or col > 8 or col < 1 or row > 8 then return end
   local b
   if self.copy or self.del then

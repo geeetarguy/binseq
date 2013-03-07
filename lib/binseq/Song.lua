@@ -30,7 +30,7 @@ setmetatable(lib, {
 function lib.new(def_or_db_path, song_id, name)
   if song_id then
     local db_path = def_or_db_path
-    local db = binseq.PresetDb(db_path)
+    local db = binseq.Database(db_path)
     return db:getOrCreateSong(song_id, name)
   end
   local def = def_or_db_path
@@ -103,7 +103,11 @@ end
 
 function lib:set(def)
   for k,v in pairs(def) do
-    self[k] = v
+    if k == 'presets' then
+      private.setPresets(self, v)
+    else
+      self[k] = v
+    end
   end
   if self.db then
     self:save()
@@ -134,6 +138,7 @@ function lib:dump()
     type   = self.type,
     data   = {
       name = self.name,
+      presets = self.presets,
     },
     patterns   = patterns,
     sequencers = sequencers,
@@ -226,10 +231,15 @@ function lib:disableRecord(e)
   end
 end
 
+-- Presets are activation settings for patterns. They contain posid => pattern.id.
+function private:setPresets(presets)
+  self.presets = presets
+end
+
 --================================================== Used for testing
 local gridToPosid = binseq.Event.gridToPosid
 function lib.mock(db, posid)
-  local db = db or binseq.PresetDb ':memory:'
+  local db = db or binseq.Database ':memory:'
   local song = db:getOrCreateSong(posid or 1, 'hello')
   for row = 1,6 do
     for col = 1,8 do

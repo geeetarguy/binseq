@@ -495,7 +495,7 @@ function should.cycleThroughLengths()
 end
 
 function should.dumpEvent()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local e = pat:getOrCreateEvent(10)

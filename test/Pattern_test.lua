@@ -30,7 +30,7 @@ function should.loadEvents()
 end
 
 function should.addEventToChordChangers()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({}, pat.chord_changers)
@@ -44,7 +44,7 @@ function should.addEventToChordChangers()
 end
 
 function should.removeEventFromChordChangers()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -62,7 +62,7 @@ function should.removeEventFromChordChangers()
 end
 
 function should.addEventToChords()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -76,7 +76,7 @@ function should.addEventToChords()
 end
 
 function should.removeEventFromChords()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   local e = pat:getOrCreateEvent(1)
   assertValueEqual({_len = 0}, pat.chords)
@@ -93,7 +93,7 @@ function should.removeEventFromChords()
 end
 
 function chordPattern()
-  local db = binseq.PresetDb ':memory:'
+  local db = binseq.Database ':memory:'
   local pat = db:getOrCreatePattern(1, 1)
   pat.note = 0
   -- Chord notes
@@ -321,7 +321,7 @@ function should.playChord()
 end
 
 function should.savePatternTuning()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local glo = pat.global
@@ -334,7 +334,7 @@ function should.savePatternTuning()
 end
 
 function should.savePatternLoop()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local glo = pat.global
@@ -347,7 +347,7 @@ function should.savePatternLoop()
 end
 
 function should.savePatternPosition()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local glo = pat.global
@@ -360,7 +360,7 @@ function should.savePatternPosition()
 end
 
 function should.savePatternVelocity()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local glo = pat.global
@@ -373,7 +373,7 @@ function should.savePatternVelocity()
 end
 
 function should.reScheduleEventsOnGlobal()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local e = pat:getOrCreateEvent(10)
@@ -394,7 +394,7 @@ function should.reScheduleEventsOnGlobal()
 end
 
 function should.dumpPattern()
-  local db = binseq.PresetDb(':memory:')
+  local db = binseq.Database(':memory:')
   local song = db:getOrCreateSong(5)
   local pat  = song:getOrCreatePattern(6)
   local e = pat:getOrCreateEvent(10)

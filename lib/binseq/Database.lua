@@ -1,6 +1,6 @@
 --[[------------------------------------------------------
 
-  binseq.PresetDb
+  binseq.Database
   ---------------
 
   A database containing presets (patterns) and events in
@@ -14,9 +14,9 @@
   * etc.
 
 --]]------------------------------------------------------
-local lib = {type = 'binseq.PresetDb'}
+local lib = {type = 'binseq.Database'}
 lib.__index     = lib
-binseq.PresetDb    = lib
+binseq.Database    = lib
 local private   = {}
 local DONE      = sqlite3.DONE
 math.randomseed(os.time())
@@ -28,7 +28,7 @@ setmetatable(lib, {
   end
 })
 
--- binseq.PresetDb(...)
+-- binseq.Database(...)
 function lib.new(path)
   local is_new
   local self = {}
